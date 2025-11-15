@@ -101,7 +101,12 @@ const ScoreRadialChart = memo<ScoreRadialChartProps>(({ isClient, data, showMock
               offset={2}
               className={className}
               style={style}
-              formatter={(label: number) => `${label}%`}
+              formatter={(label: unknown) => {
+                if (typeof label === 'number') {
+                  return `${label}%`;
+                }
+                return '';
+              }}
             />
           </RadialBar>
         </RadialBarChart>
