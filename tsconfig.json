@@ -37,6 +37,12 @@
     ],
     // Defines custom path aliases for module imports.
     "paths": {
+      "@/types": [
+        "./types"
+      ],
+      "@/types/*": [
+        "./types/*"
+      ],
       "@/*": [
         "./src/*"
       ]
