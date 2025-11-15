@@ -1,0 +1,18 @@
+# Configures the Firebase App Hosting backend.
+env:
+  - variable: BUNDLE_UTILS
+    value: "true" # Bundles the utils package with the server build.
+
+runConfig:
+  # Specifies the number of vCPU cores per server instance.
+  cpu: 2
+
+  # Sets the memory allocation in MiB for each server instance.
+  memoryMiB: 512
+
+  # Defines the maximum concurrent requests per instance.
+  concurrency: 80
+
+  # Sets the maximum number of server instances.
+  # To increase the quota beyond 100, contact Firebase Support.
+  maxInstances: 100
