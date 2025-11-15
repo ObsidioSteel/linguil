@@ -1,0 +1,61 @@
+{
+  "compilerOptions": {
+    // Specifies the built-in libraries available to the compiler.
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    // Allows JavaScript files to be included in the compilation.
+    "allowJs": true,
+    // Skips type checking of all declaration files (*.d.ts).
+    "skipLibCheck": true,
+    // Enables a wide range of strict type-checking options.
+    "strict": true,
+    // Prevents the compiler from emitting output files.
+    "noEmit": true,
+    // Ensures that module imports are unambiguous.
+    "verbatimModuleSyntax": true,
+    // Specifies the module code generation standard.
+    "module": "esnext",
+    // Specifies the strategy for resolving module imports.
+    "moduleResolution": "bundler",
+    // Allows importing .json files as modules.
+    "resolveJsonModule": true,
+    // Ensures that each file can be safely transpiled without relying on other imports.
+    "isolatedModules": true,
+    // Preserves JSX syntax in the output for a JSX transformer to process.
+    "jsx": "preserve",
+    // Enables incremental compilation.
+    "incremental": true,
+    // Specifies compiler plugins to load.
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    // Defines custom path aliases for module imports.
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    // Specifies the ECMAScript target version.
+    "target": "esnext",
+    // Enables compatibility with CommonJS modules.
+    "esModuleInterop": true
+  },
+  // Specifies the files to be included in the compilation.
+  "include": [
+    "next-env.d.ts",
+    "types/recharts.d.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  // Specifies the files and folders to be excluded from the compilation.
+  "exclude": [
+    "node_modules",
+    "functions"
+  ]
+}

@@ -1,0 +1,74 @@
+/* Include Tailwind's base styles, component classes, and utility classes. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Stabilize the scrollbar to prevent layout shifts when content overflows. */
+html {
+  scrollbar-gutter: stable;
+}
+
+@layer base {
+  /* Define CSS variables for the light theme. */
+  :root {
+    --background: 40 50% 96%; /* Light Beige */
+    --foreground: 27 20% 15%; /* Dark Brown */
+    --card: 0 0% 100%; /* White */
+    --card-foreground: 27 20% 15%; /* Dark Brown */
+    --popover: 60 25% 94%; /* Light Yellowish Gray */
+    --popover-foreground: 27 20% 15%; /* Dark Brown */
+    --primary: 26 80% 67%; /* Warm Orange */
+    --primary-foreground: 26 80% 10%; /* Dark Orange */
+    --secondary: 48 20% 88%; /* Light Grayish Yellow */
+    --secondary-foreground: 27 20% 15%; /* Dark Brown */
+    --muted: 30 95% 85%; /* Light Orange */
+    --muted-foreground: 27 20% 35%; /* Grayish Brown */
+    --friend-box: 31 87% 91%; /* Very Light Orange */
+    --friend-box-foreground: 27 20% 35%; /* Grayish Brown */
+    --destructive: 0 84.2% 60.2%; /* Bright Red */
+    --destructive-foreground: 27 20% 15%; /* Dark Brown */
+    --correct: 120 70% 40%; /* Green */
+    --correct-foreground: 27 20% 15%; /* Dark Brown */
+    --border: 48 20% 83%; /* Light Grayish Yellow */
+    --chart-1: 12 76% 61%; /* Orange-Red */
+    --chart-2: 173 58% 39%; /* Teal */
+    --chart-3: 197 37% 24%; /* Dark Blue */
+    --chart-4: 43 74% 66%; /* Yellow-Orange */
+    --chart-5: 27 87% 67%; /* Orange */
+    --radius: 0.5rem;
+  }
+
+  /* Define CSS variables for the dark theme. */
+  .dark {
+    --background: 27 10% 10%; /* Very Dark Brown */
+    --foreground: 60 56% 91%; /* Light Yellowish Gray */
+    --card: 27 10% 12%; /* Very Dark Brown */
+    --card-foreground: 60 56% 91%; /* Light Yellowish Gray */
+    --popover: 27 10% 12%; /* Very Dark Brown */
+    --popover-foreground: 60 56% 91%; /* Light Yellowish Gray */
+    --primary: 26 80% 67%; /* Warm Orange */
+    --primary-foreground: 26 80% 10%; /* Dark Orange */
+    --secondary: 48 20% 88%; /* Light Grayish Yellow */
+    --secondary-foreground: 27 20% 15%; /* Dark Brown */
+    --muted: 30 95% 85%; /* Light Orange */
+    --muted-foreground: 27 20% 35%; /* Grayish Brown */
+    --friend-box: 31 87% 91%; /* Very Light Orange */
+    --friend-box-foreground: 27 20% 35%; /* Grayish Brown */
+    --destructive: 0 84.2% 60.2%; /* Bright Red */
+    --destructive-foreground: 60 56% 91%; /* Light Yellowish Gray */
+    --correct: 120 70% 40%; /* Green */
+    --correct-foreground: 60 56% 91%; /* Light Yellowish Gray */
+    --border: 48 20% 83%; /* Light Grayish Yellow */
+    --chart-1: 12 76% 61%; /* Orange-Red */
+    --chart-2: 173 58% 39%; /* Teal */
+    --chart-3: 197 37% 24%; /* Dark Blue */
+    --chart-4: 43 74% 66%; /* Yellow-Orange */
+    --chart-5: 27 87% 67%; /* Orange */
+    --radius: 0.5rem;
+  }
+  
+  /* Apply the base background and foreground colors to the body. */
+  body {
+    @apply bg-background text-foreground;
+  }
+}

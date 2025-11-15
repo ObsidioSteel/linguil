@@ -1,0 +1,13 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Defines rules for the 'audio' folder, containing generated MP3s.
+    match /audio/{allPaths=**} {
+      // Allows public read access for all audio files.
+      allow read;
+      // Disallows client-side writes to prevent unauthorized uploads.
+      allow write: if false;
+    }
+  }
+}

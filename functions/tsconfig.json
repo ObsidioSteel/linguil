@@ -1,0 +1,28 @@
+{
+  // Specifies the files to be included in the compilation.
+  "include": [
+    "src"
+  ],
+  "compilerOptions": {
+    // Sets the module system for the generated JavaScript.
+    "module": "commonjs",
+    // Ensures that all code paths in a function return a value.
+    "noImplicitReturns": true,
+    // Specifies the output directory for compiled files.
+    "outDir": "lib",
+    // Generates source maps for debugging.
+    "sourceMap": true,
+    // Enables all strict type-checking options.
+    "strict": true,
+    // Sets the target ECMAScript version.
+    "target": "esnext",
+    // Skips type checking of declaration files (.d.ts).
+    "skipLibCheck": true,
+    // Allows default imports from modules with no default export.
+    "esModuleInterop": true,
+    // Reports errors on unused local variables.
+    "noUnusedLocals": true,
+    // Reports errors on unused function parameters.
+    "noUnusedParameters": true
+  }
+}

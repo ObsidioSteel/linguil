@@ -1,0 +1,83 @@
+'use client';
+
+import {
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  signOut,
+  signInWithCustomToken,
+} from 'firebase/auth';
+import { httpsCallable } from 'firebase/functions';
+import { getFirebaseAuth, getFirebaseFunctions } from '@/lib/firebase/firebase';
+
+// Maps Firebase auth error codes to user-friendly messages.
+export const getAuthErrorMessage = (error: unknown): string => {
+  let message = 'An unexpected error occurred';
+  const code = (error as { code?: string })?.code;
+
+  if (typeof code === 'string') {
+    switch (code) {
+      case 'auth/user-not-found':
+      case 'auth/wrong-password':
+      case 'auth/invalid-credential':
+        message = 'Incorrect email or password';
+        break;
+      case 'functions/already-exists':
+      case 'auth/email-already-in-use':
+        message = 'Email already in use';
+        break;
+      case 'auth/weak-password':
+        message = 'Password is too weak';
+        break;
+      case 'auth/popup-blocked':
+        message = 'Sign-in popup blocked—allow popups for linguil.app';
+        break;
+      case 'auth/user-cancelled':
+        message = 'Sign-in process was cancelled';
+        break;
+      default:
+        message = 'An error occurred during authentication';
+        break;
+    }
+  }
+  return message;
+};
+
+// Initiates the Google sign-in process via a popup.
+export const signInWithGoogle = async (): Promise<void> => {
+  const auth = await getFirebaseAuth();
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  await signInWithPopup(auth, provider);
+};
+
+// Authenticates a user with email and password.
+export const handleSignInWithEmail = async (email: string, password: string): Promise<void> => {
+  const auth = await getFirebaseAuth();
+  await signInWithEmailAndPassword(auth, email, password);
+};
+
+// Creates a new user account via a cloud function and signs them in.
+export const handleSignUpWithEmail = async (name: string, email: string, password: string): Promise<void> => {
+  const functions = await getFirebaseFunctions();
+  const createUserAccount = httpsCallable<{ name: string; email: string; password: string }, { token: string }>(functions, 'createUserAccount');
+
+  const result = await createUserAccount({ name, email, password });
+  const token = result.data.token;
+
+  const auth = await getFirebaseAuth();
+  await signInWithCustomToken(auth, token);
+};
+
+// Sends a password reset email to the specified user.
+export const handleResetPassword = async (email: string): Promise<void> => {
+  const auth = await getFirebaseAuth();
+  await sendPasswordResetEmail(auth, email);
+};
+
+// Signs out the currently authenticated user.
+export const handleSignOut = async (): Promise<void> => {
+  const auth = await getFirebaseAuth();
+  await signOut(auth);
+};

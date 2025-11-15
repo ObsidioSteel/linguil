@@ -1,0 +1,266 @@
+'use client';
+
+import type { LanguageStats, Word } from "@/types/index";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect, useRef, memo, useLayoutEffect } from "react";
+import type { ReactNode } from 'react';
+import { useAuth } from "@/hooks/use-auth";
+import { Lock, Unlock } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
+import { DialogTitle } from '@/components/ui/dialog';
+import { VisuallyHidden } from '@/components/ui/visually-hidden';
+
+// Dynamically import `PaymentDialog` to prevent SSR.
+const PaymentDialog = dynamic(() => import('@/components/payments/PaymentDialog').then(mod => mod.PaymentDialog), {
+  loading: () => (
+    <Dialog open={true}>
+      <DialogContent hideCloseButton className="sm:max-w-xs">
+        <div className="flex items-center justify-center h-[244px]">
+          <VisuallyHidden>
+            <DialogTitle>Unlock linguil+</DialogTitle>
+            <DialogDescription>Loading payment dialog</DialogDescription>
+          </VisuallyHidden>
+          <LoadingSpinner />
+        </div>
+      </DialogContent>
+    </Dialog>
+  ),
+  ssr: false // Renders on the client-side only.
+});
+
+// Displays the word's language statistics.
+const LanguageStatsDisplay = memo(({ languageStats, word }: { languageStats: LanguageStats | null, word: Word }) => {
+  if (!languageStats) return null;
+  return (
+    <div className="flex flex-wrap md:flex-nowrap justify-center items-stretch gap-2 md:gap-4">
+      <div className="text-center bg-muted p-2 rounded-lg text-[10px] text-muted-foreground flex-1 flex flex-col justify-center order-1 md:order-1">
+        <p><b>{word.language}</b> is spoken by <b>{languageStats.totalSpeakers}</b> people</p>
+      </div>
+      <CardTitle className="font-headline text-lg text-muted-foreground dark:text-foreground italic flex-shrink-0 px-4 flex items-center justify-center order-3 md:order-2 w-full md:w-auto">
+        ({word.family}, {word.language})
+      </CardTitle>
+      <div className="text-center bg-muted p-2 rounded-lg text-[10px] text-muted-foreground flex-1 flex flex-col justify-center order-2 md:order-3">
+        <p><b>{languageStats.countryWithMostSpeakers}</b> has the largest number of speakers at <b>{languageStats.speakersInCountry}</b></p>
+      </div>
+    </div>
+  );
+});
+LanguageStatsDisplay.displayName = 'LanguageStatsDisplay';
+
+// Displays the final score and a corresponding ASCII art message.
+const ScoreDisplay = memo(({ score, totalQuestions }: { score: number, totalQuestions: number }) => {
+  // ASCII messages for different scores.
+  const scoreMessages: { [key: number]: string } = {
+    0: "ʕノ•ᴥ•ʔノ ︵ ┻━┻",
+    1: "◝ʕ •ᴥ• ʔ◜",
+    2: "ʕ ᵔᴥᵔ ʔ",
+    3: "ʕ　ᵔᴥᵔʔ人ʕᵔᴥᵔ　ʔ",
+  };
+  const message = scoreMessages[score] || "";
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const messageRef = useRef<HTMLParagraphElement>(null);
+
+  // Adjusts message font size to fit its container.
+  const adjustFontSize = () => {
+    const container = containerRef.current;
+    const messageEl = messageRef.current;
+
+    if (container && messageEl) {
+      messageEl.style.fontSize = ''; // Reset font size before calculating.
+      const containerWidth = container.clientWidth;
+      const messageWidth = messageEl.scrollWidth;
+      
+      // If message overflows, reduce font size.
+      if (messageWidth > containerWidth) {
+        const initialFontSize = parseFloat(getComputedStyle(messageEl).fontSize);
+        const newSize = initialFontSize * (containerWidth / messageWidth);
+        messageEl.style.fontSize = `${newSize}px`;
+      }
+    }
+  };
+
+  // Adjust font size before browser paint.
+  useLayoutEffect(() => {
+    adjustFontSize();
+  }, [message]);
+
+  // Re-adjust font on window resize.
+  useEffect(() => {
+    window.addEventListener('resize', adjustFontSize);
+    return () => {
+      window.removeEventListener('resize', adjustFontSize);
+    };
+  }, []);
+
+  return (
+    <div className="flex-shrink-0 w-full" ref={containerRef}>
+      <p className="font-headline text-3xl font-bold mb-2 dark:text-white">
+        You scored {score}/{totalQuestions}
+      </p>
+      <p ref={messageRef} className="text-4xl mb-2 dark:text-white whitespace-nowrap" aria-hidden="true">
+        {message}
+      </p>
+      <p className="text-muted-foreground dark:text-foreground mb-2">Thanks for playing!</p>
+    </div>
+  );
+});
+ScoreDisplay.displayName = 'ScoreDisplay';
+
+// Countdown timer for the next daily word.
+const CountdownTimer = memo(() => {
+  // Formatted time-left string.
+  const [timeLeft, setTimeLeft] = useState('');
+  useEffect(() => {
+    // Calculate time until next midnight.
+    const calculateTimeLeft = () => {
+      const now = new Date().getTime();
+      const midnight = new Date();
+      midnight.setHours(24, 0, 0, 0); // Set to next day's midnight.
+      const difference = midnight.getTime() - now;
+      if (difference > 0) {
+        const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((difference / 1000 / 60) % 60);
+        const seconds = Math.floor((difference / 1000) % 60);
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      } else {
+        return 'New word available!';
+      }
+    };
+    // Set initial time left.
+    setTimeLeft(calculateTimeLeft());
+    // Update timer every second.
+    const timer = setInterval(() => setTimeLeft(calculateTimeLeft()), 1000);
+    // Cleanup interval on unmount.
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="mb-2">
+      <p className="text-sm text-muted-foreground dark:text-foreground">New word in:</p>
+      <p className="font-mono text-lg font-semibold">{timeLeft}</p>
+    </div>
+  );
+});
+CountdownTimer.displayName = 'CountdownTimer';
+
+// Button to start a new game or prompt payment/sign-in.
+const CallToActionButton = memo(({ hasPaid, startOfflineGame, openAuthDialog, user }: { hasPaid: boolean, startOfflineGame: () => void, openAuthDialog: () => void, user: any }) => {
+  // Controls payment dialog visibility.
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+
+  // Handles "Unlock" button click.
+  const handleUnlockClick = () => {
+    if (user) {
+      // If signed in, show payment dialog.
+      setShowPaymentDialog(true);
+    } else {
+      // If not signed in, show auth dialog.
+      openAuthDialog();
+    }
+  };
+
+  return (
+    <>
+      {hasPaid ? (
+        // If paid, show "Play again" button.
+        <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={startOfflineGame}>
+          Play again
+        </Button>
+      ) : (
+        // If not paid, show "Unlock" button.
+        <Button
+          className="group bg-primary text-primary-foreground hover:bg-primary/90"
+          onClick={handleUnlockClick}
+        >
+          <Lock className="mr-2 h-5 w-5 group-hover:hidden" />
+          <Unlock className="mr-2 h-5 w-5 hidden group-hover:block" />
+          Unlock unlimited games
+        </Button>
+      )}
+      {/* Render payment dialog if visible. */}
+      {showPaymentDialog && <PaymentDialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog} />}
+    </>
+  );
+});
+CallToActionButton.displayName = 'CallToActionButton';
+
+// Props for QuizResults.
+type QuizResultsProps = {
+  // User's final score.
+  score: number;
+  // Total number of questions.
+  totalQuestions: number;
+  // The word object for the quiz.
+  word: Word;
+  // Language statistics.
+  languageStats: LanguageStats | null;
+  // Starts a new offline game.
+  startOfflineGame: () => void;
+  // Word display component.
+  wordDisplay: ReactNode;
+  // Game mode toggle component.
+  gameModeToggleSwitch: ReactNode;
+  // Dark mode toggle component.
+  darkModeToggleSwitch: ReactNode;
+};
+
+// Displays quiz results, stats, and CTAs.
+const QuizResults = ({ score, totalQuestions, word, languageStats, startOfflineGame, wordDisplay, gameModeToggleSwitch, darkModeToggleSwitch }: QuizResultsProps) => {
+  // Auth hook for user and payment status.
+  const { user, hasPaid, openAuthDialog } = useAuth();
+  // Ref to the results card for focusing.
+  const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Focus results card on mount.
+  useEffect(() => {
+    resultsRef.current?.focus();
+  }, []);
+
+  return (
+    <Card ref={resultsRef} tabIndex={-1} className="shadow-lg animate-fade-in-up w-full outline-none">
+      <CardHeader className="text-center pb-0.5">
+        <LanguageStatsDisplay languageStats={languageStats} word={word} />
+      </CardHeader>
+      <CardContent className="text-center pt-2">
+        {wordDisplay}
+        <div className="relative flex justify-center items-center mb-2">
+          {/* Dark mode toggle slot. */}
+          <div className="absolute left-0 top-1/2 -translate-y-1/2">
+            {darkModeToggleSwitch}
+          </div>
+          <p className="text-lg font-semibold text-muted-foreground dark:text-foreground">
+            – {word.translation} –
+          </p>
+          {/* Game mode toggle slot. */}
+          <div className="absolute right-0 top-1/2 -translate-y-1/2">
+            {gameModeToggleSwitch}
+          </div>
+        </div>
+
+        <div className="flex justify-center items-center gap-4 w-full">
+          <div className="w-full">
+            <ScoreDisplay score={score} totalQuestions={totalQuestions} />
+            <CountdownTimer />
+          </div>
+        </div>
+
+        <CallToActionButton 
+          hasPaid={hasPaid}
+          startOfflineGame={startOfflineGame}
+          openAuthDialog={openAuthDialog}
+          user={user}
+        />
+      </CardContent>
+    </Card>
+  );
+};
+
+export { QuizResults };

@@ -1,0 +1,50 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Defines rules for publicly accessible daily word data.
+    match /dailyWords/{word} {
+      allow read: if true;
+      allow write: if false; // Writes are server-only.
+    }
+
+    // Defines rules for private user data and subcollections.
+    match /users/{userId} {
+      // A user can only read and write to their own document.
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Defines rules for a user's daily scores.
+      match /dailyScores/{dailyScoreId} {
+        // Users can create and read their own scores.
+        allow create, read: if request.auth != null && request.auth.uid == userId;
+        // Scores cannot be updated or deleted from the client.
+        allow update, delete: if false;
+      }
+
+      // Defines rules for a user's friends list.
+      match /friends/{friendId} {
+        // Users have full read, write, and delete access to their own friends list.
+        allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Defines rules for public user profiles.
+    match /users_public/{userId} {
+      // Any authenticated user can read public profiles.
+      allow read: if request.auth != null;
+
+      // Profile creation is handled by the server.
+      allow create: if false;
+
+      // A user can only update their own displayName.
+      allow update: if request.auth != null && request.auth.uid == userId
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName'])
+                    && request.resource.data.displayName is string
+                    && request.resource.data.displayName.size() > 0;
+
+      // Users cannot delete their public profiles from the client.
+      allow delete: if false;
+    }
+  }
+}

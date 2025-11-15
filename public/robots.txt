@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /_next/
+Disallow: /data/
+
+Sitemap: https://linguil.app/sitemap.xml
