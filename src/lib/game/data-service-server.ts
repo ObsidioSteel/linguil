@@ -1,5 +1,4 @@
-import { getFirebaseFirestore } from '@/lib/firebase/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { getAdminDb } from '@/lib/firebase/firebase-admin';
 import { unstable_cache as cache } from 'next/cache';
 import type { RawDailyData, Word, LanguageStats, Distractors } from '@/types/index';
 
@@ -9,10 +8,10 @@ export const getDailyWordData = cache(
     const today = new Date().toISOString().slice(0, 10); // Get date in YYYY-MM-DD format.
 
     try {
-      const db = await getFirebaseFirestore();
-      const dailyWordRef = doc(db, 'dailyWords', today);
-      const dailyWordSnap = await getDoc(dailyWordRef);
-      if (!dailyWordSnap.exists()) {
+      const db = await getAdminDb();
+      const dailyWordRef = db.collection('dailyWords').doc(today);
+      const dailyWordSnap = await dailyWordRef.get();
+      if (!dailyWordSnap.exists) {
         return null;
       }
 

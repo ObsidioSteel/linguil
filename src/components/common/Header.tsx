@@ -14,7 +14,6 @@ const Header = memo(() => {
           alt="linguil logo"
           width={240}
           height={70}
-          className="h-auto w-auto"
           priority
           fetchPriority="high"
           data-ai-hint="logo simple"
