@@ -116,7 +116,7 @@ const nextConfig = {
   webpack: (config, { isServer }) => {
     // Excludes server-side packages from the client-side bundle.
     if (!isServer) {
-      config.externals.push('firebase-admin', '@google-cloud/secret-manager');
+      config.externals.push('firebase-admin');
     }
 
     return config;

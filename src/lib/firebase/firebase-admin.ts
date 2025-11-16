@@ -1,63 +1,31 @@
 import admin from 'firebase-admin';
 import 'server-only';
-import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
+let adminInitializationPromise: Promise<void> | undefined = undefined;
 
-// Accesses a secret from Google Secret Manager.
-async function accessSecret(client: SecretManagerServiceClient, name: string): Promise<string> {
-    try {
-        const [version] = await client.accessSecretVersion({
-            name: `projects/linguil/secrets/${name}/versions/latest`,
+// Initializes the Firebase Admin SDK if not already running.
+const initializeFirebaseAdmin = (): Promise<void> => {
+    if (!adminInitializationPromise) {
+        adminInitializationPromise = new Promise((resolve) => {
+            if (admin.apps.length > 0) {
+                resolve();
+            } else {
+                // Uses Application Default Credentials in the Google Cloud environment.
+                admin.initializeApp();
+                resolve();
+            }
         });
-        const payload = version.payload?.data?.toString();
-        if (!payload) {
-            throw new Error(`Payload for secret ${name} is empty.`);
-        }
-        return payload;
-    } catch {
-        throw new Error(`Failed to access secret: ${name}.`);
     }
-}
+    return adminInitializationPromise;
+};
 
-// Initializes the Firebase Admin SDK.
-async function initializeFirebaseAdmin() {
-    if (admin.apps.length > 0) {
-        return; // Initialize only once.
-    }
-
-    try {
-        const client = new SecretManagerServiceClient();
-
-        const [projectId, clientEmail, rawPrivateKey] = await Promise.all([
-            accessSecret(client, 'FIREBASE_PROJECT_ID'),
-            accessSecret(client, 'FIREBASE_CLIENT_EMAIL'),
-            accessSecret(client, 'FIREBASE_PRIVATE_KEY'),
-        ]);
-
-        const privateKey = rawPrivateKey.replace(/\\n/g, '\n'); // Replace escaped newlines.
-
-        admin.initializeApp({
-            credential: admin.credential.cert({
-                projectId,
-                clientEmail,
-                privateKey,
-            }),
-        });
-
-    } catch {
-        throw new Error('Failed to initialize Firebase Admin SDK'); // Critical failure.
-    }
-}
-
-const adminInitializationPromise = initializeFirebaseAdmin(); // Ensure initialization is run only once.
-
-// Gets the Firebase Admin Auth service, ensuring initialization is complete.
+// Gets the Firebase Admin Auth service.
 export const getAdminAuth = async (): Promise<admin.auth.Auth> => {
-    await adminInitializationPromise;
+    await initializeFirebaseAdmin();
     return admin.auth();
 };
 
-// Gets the Firebase Admin Firestore service, ensuring initialization is complete.
+// Gets the Firebase Admin Firestore service.
 export const getAdminDb = async (): Promise<admin.firestore.Firestore> => {
-    await adminInitializationPromise;
+    await initializeFirebaseAdmin();
     return admin.firestore();
 };
