@@ -22,14 +22,17 @@ const cspPolicies = {
     'https://js.stripe.com',
     'https://apis.google.com',
     'https://*.googletagmanager.com',
+    'https://accounts.google.com',
   ],
-  'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+  'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://accounts.google.com'],
   'font-src': ["'self'", 'https://fonts.gstatic.com'],
   'connect-src': [
     "'self'",
     'https://*.firebaseio.com',
     'wss://*.firebaseio.com',
     'https://*.googleapis.com',
+    'https://identitytoolkit.googleapis.com',
+    'https://accounts.google.com',
     'https://*.stripe.com',
     'https://*.google-analytics.com',
     'https://*.cloudfunctions.net',
@@ -47,7 +50,7 @@ const cspPolicies = {
     'https://*.googletagmanager.com',
     'https://www.google.com',
   ],
-  'frame-src': ["'self'", 'https://*.firebaseapp.com', 'https://*.stripe.com'],
+  'frame-src': ["'self'", 'https://*.firebaseapp.com', 'https://*.stripe.com', 'https://accounts.google.com'],
   'media-src': ['https://storage.googleapis.com'],
 };
 
