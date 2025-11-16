@@ -2,6 +2,28 @@
 env:
   - variable: BUNDLE_UTILS
     value: "true" # Bundles the utils package with the server build.
+  - variable: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+    value: "pk_test_51S5yOpRSucK2OCp3kpoJumhBiQUOoxZdJVLgIHkjqzGc2ehQVHArwwewkM8VxIm4ekznEVTR2F0OVwZqN6HHwKtO00m0PFywrP"
+  - variable: NEXT_PUBLIC_STRIPE_PRICE_ID_FIXED
+    value: "price_1S5ykURSucK2OCp3r6SIKfTM"
+  - variable: NEXT_PUBLIC_STRIPE_PRICE_ID_CUSTOM
+    value: "price_1S5ykURSucK2OCp3qrE3DyMV"
+  - variable: NEXT_PUBLIC_FIREBASE_CHECKOUT_FUNCTION_URL
+    value: "https://europe-west1-linguil.cloudfunctions.net/createStripeCheckoutSession"
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: "AIzaSyBD4XKzmxeQuHpPbhhHG9LUzSoqq_ldiO8"
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: "linguil.firebaseapp.com"
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: "linguil"
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: "linguil.firebasestorage.app"
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "485538549135"
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:485538549135:web:deb4d012c549597025cffa"
+  - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+    value: "G-DD4VPW4P34"
 
 runConfig:
   # Specifies the number of vCPU cores per server instance.

@@ -32,13 +32,9 @@
     "source": ".",
     "ignore": [
       "firebase.json",
-      "**/.*",
       "**/node_modules/**",
       "functions/**",
       "apphosting.yaml"
-    ],
-    "frameworksBackend": {
-      "region": "europe-west1"
-    }
+    ]
   }
 }
