@@ -13,32 +13,40 @@ const ENV_VAR_MAP: Record<keyof Omit<FirebaseOptions, 'databaseURL'>, string> = 
 
 // Loads and validates the client-side Firebase configuration from environment variables.
 function getFirebaseConfig(): FirebaseOptions {
+  let config: FirebaseOptions;
+
   // In production on Firebase App Hosting, a config is provided as an env var.
   if (process.env.FIREBASE_WEBAPP_CONFIG) {
-    return JSON.parse(process.env.FIREBASE_WEBAPP_CONFIG);
-  }
+    config = JSON.parse(process.env.FIREBASE_WEBAPP_CONFIG);
+  } else {
+    // For local development, build from .env.local
+    const localConfig = {
+      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+      measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+    };
 
-  // For local development, build from .env.local
-  const config = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-  };
-
-  // Ensure all required environment variables are present for local dev.
-  for (const key in ENV_VAR_MAP) {
-    const configKey = key as keyof Omit<FirebaseOptions, 'databaseURL'>;
-    if (!config[configKey]) {
-      const envVarName = ENV_VAR_MAP[configKey];
-      throw new Error(`CRITICAL: Missing Firebase environment variable for local dev: ${envVarName}.`);
+    // Ensure all required environment variables are present for local dev.
+    for (const key in ENV_VAR_MAP) {
+      const configKey = key as keyof Omit<FirebaseOptions, 'databaseURL'>;
+      if (!localConfig[configKey]) {
+        const envVarName = ENV_VAR_MAP[configKey];
+        throw new Error(`CRITICAL: Missing Firebase environment variable for local dev: ${envVarName}.`);
+      }
     }
+    config = localConfig as FirebaseOptions;
   }
 
-  return config as FirebaseOptions;
+  // Force authDomain to custom domain on production.
+  if (typeof window !== 'undefined' && window.location.hostname === 'linguil.app') {
+    config.authDomain = 'linguil.app';
+  }
+
+  return config;
 }
 
 let app: FirebaseApp; // Singleton Firebase app instance.
