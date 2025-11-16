@@ -1,5 +1,6 @@
 // Import Firebase Admin SDK and Cloud Functions modules.
 import * as admin from "firebase-admin";
+import * as functions from "firebase-functions/v1";
 import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { defineSecret } from "firebase-functions/params";
@@ -18,6 +19,47 @@ const db = admin.firestore();
 // Define a secret for the Stripe webhook.
 const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 
+// Handle creation of user records for all auth providers.
+export const onUserCreate = functions.region("europe-west1").runWith({secrets: ["STRIPE_SECRET_KEY"]}).auth.user().onCreate(async (user: admin.auth.UserRecord) => {
+  const stripe = getStripe();
+  try {
+    // Create a new customer in Stripe.
+    const customer = await stripe.customers.create({
+      email: user.email,
+      metadata: { firebaseUID: user.uid },
+    });
+
+    // Use a Firestore batch to perform multiple writes atomically.
+    const batch = db.batch();
+
+    // Create a document for the user in the 'users' collection.
+    const userDocRef = db.collection("users").doc(user.uid);
+    batch.set(userDocRef, {
+      stripeCustomerId: customer.id,
+      email: user.email,
+      hasPaid: false,
+    });
+
+    // Create a document for the user in the 'users_public' collection.
+    const userPublicDocRef = db.collection("users_public").doc(user.uid);
+    batch.set(userPublicDocRef, {
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+      friendCode: user.uid,
+      scores: {
+        perfectScores: 0,
+        totalAnswered: 0,
+        totalCorrect: 0,
+      },
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Commit the batch write.
+    await batch.commit();
+  } catch (err) {
+  }
+});
+
 // Cloud Function to create a new user account.
 export const createUserAccount = onCall({ region: "europe-west1", secrets: ["STRIPE_SECRET_KEY"], memory: "256MiB", cors: true }, async (request) => {
   // Destructure required parameters from the request data.
@@ -27,9 +69,6 @@ export const createUserAccount = onCall({ region: "europe-west1", secrets: ["STR
   if (!name || !email || !password) {
     throw new HttpsError("invalid-argument", "Missing required parameters: name, email, or password");
   }
-
-  // Initialize Stripe.
-  const stripe = getStripe();
 
   try {
     // Check if a user with the given email already exists.
@@ -49,39 +88,6 @@ export const createUserAccount = onCall({ region: "europe-west1", secrets: ["STR
       password: password,
       displayName: name,
     });
-
-    // Create a new customer in Stripe.
-    const customer = await stripe.customers.create({
-      email: userRecord.email,
-      metadata: { firebaseUID: userRecord.uid },
-    });
-
-    // Use a Firestore batch to perform multiple writes atomically.
-    const batch = db.batch();
-
-    // Create a document for the user in the 'users' collection.
-    const userDocRef = db.collection("users").doc(userRecord.uid);
-    batch.set(userDocRef, {
-      stripeCustomerId: customer.id,
-      email: userRecord.email,
-      hasPaid: false,
-    });
-
-    // Create a public-facing document for the user.
-    const userPublicDocRef = db.collection("users_public").doc(userRecord.uid);
-    batch.set(userPublicDocRef, {
-      displayName: userRecord.displayName,
-      friendCode: userRecord.uid,
-      scores: {
-        perfectScores: 0,
-        totalAnswered: 0,
-        totalCorrect: 0,
-      },
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    // Commit the batch write.
-    await batch.commit();
 
     // Generate a custom token for the client to use for a reliable sign-in.
     const customToken = await admin.auth().createCustomToken(userRecord.uid);
