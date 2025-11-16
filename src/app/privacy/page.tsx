@@ -12,7 +12,7 @@ export default function PrivacyPolicyPage() {
       <p className="text-sm mb-4 italic">Last updated: 16/11/25</p>
 
       <p className="mb-4">
-        This privacy policy explains how linguil ("we", "us", or "our") collects, uses, discloses, and safeguards your information when you use our web application.
+        This privacy policy explains how linguil (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) collects, uses, discloses, and safeguards your information when you use our web application.
         We are committed to protecting your privacy and providing transparency about our data practices.
       </p>
 
