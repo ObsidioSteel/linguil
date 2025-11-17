@@ -11,7 +11,7 @@ env:
   - variable: NEXT_PUBLIC_FIREBASE_CHECKOUT_FUNCTION_URL
     value: "https://europe-west1-linguil.cloudfunctions.net/createStripeCheckoutSession"
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    value: "AIzaSyBD4XKzmxeQuHpPbhhHG9LUzSoqq_ldiO8"
+    value: "AIzaSyDAEY1-LD2nYg91hULjy4jqKaOlgwPyhlk"
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
     value: "linguil.firebaseapp.com"
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
