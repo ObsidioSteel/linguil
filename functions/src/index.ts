@@ -95,11 +95,22 @@ export const createUserAccount = onCall({ region: "europe-west1", secrets: ["STR
     // Return the token to the client.
     return { token: customToken };
 
-  } catch (err) {
+  } catch (err: unknown) {
     // Handle any errors that occur during the process.
+    const error = err as { code?: string; message?: string };
+
+    // Handle specific Firebase Authentication errors.
+    if (error.code && error.code.startsWith('auth/')) {
+        const message = error.message || "An unexpected authentication error occurred.";
+        throw new HttpsError("failed-precondition", message, { code: error.code });
+    }
+
+    // Handle HttpsError instances.
     if (err instanceof HttpsError) {
       throw err;
     }
+
+    // Log and throw a generic internal error for any other cases.
     console.error("Error in createUserAccount:", err);
     throw new HttpsError("internal", "An unexpected error occurred while creating the user account");
   }

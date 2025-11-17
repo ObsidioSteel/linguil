@@ -33,22 +33,28 @@ function getFirebaseConfig(): FirebaseOptions {
   }
 
   // Force authDomain to custom domain on production to fix cross-origin auth error.
-  if (typeof window !== 'undefined' && window.location.hostname === 'linguil.app') {
+  if (typeof window !== 'undefined' && (window.location.hostname === 'linguil.app' || window.location.hostname === 'www.linguil.app')) {
     config.authDomain = 'linguil.app';
   }
 
   return config as FirebaseOptions;
 }
 
-let app: FirebaseApp; // Singleton Firebase app instance.
-
-// Lazily initializes and returns the singleton Firebase app instance.
+// Initializes and returns a singleton Firebase app instance, handling SSR correctly.
 const getFirebaseApp = (): FirebaseApp => {
-  if (!app) {
-    const firebaseConfig = getFirebaseConfig();
-    app = getApps().length ? getApp() : initializeApp(firebaseConfig); // Use existing app or initialize a new one.
+  if (typeof window === 'undefined') {
+    // On the server, always use the default app instance.
+    return getApps().length > 0 ? getApp() : initializeApp(getFirebaseConfig());
   }
-  return app;
+
+  // On the client, use a named instance to avoid hydration conflicts and ensure the correct authDomain.
+  const clientAppName = 'client-side-app';
+  const existingApp = getApps().find(app => app.name === clientAppName);
+  if (existingApp) {
+    return existingApp;
+  }
+  
+  return initializeApp(getFirebaseConfig(), clientAppName);
 };
 
 // Lazily imports and returns the Firebase Auth service.

@@ -14,7 +14,12 @@ import { getFirebaseAuth, getFirebaseFunctions } from '@/lib/firebase/firebase';
 // Maps Firebase auth error codes to user-friendly messages.
 export const getAuthErrorMessage = (error: unknown): string => {
   let message = 'An unexpected error occurred';
-  const code = (error as { code?: string })?.code;
+
+  // Cast the error to a more detailed type to inspect its properties.
+  const errorObj = error as { code?: string; message?: string; details?: { code?: string } };
+
+  // Check for a nested error code from a Cloud Function first.
+  let code = errorObj.details?.code || errorObj.code;
 
   if (typeof code === 'string') {
     switch (code) {
@@ -37,6 +42,8 @@ export const getAuthErrorMessage = (error: unknown): string => {
         message = 'Sign-in process was cancelled';
         break;
       default:
+        // For any other errors, show a generic message but log the code for debugging.
+        console.error(`Unhandled auth error code: ${code}`);
         message = 'An error occurred during authentication';
         break;
     }
