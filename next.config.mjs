@@ -50,7 +50,7 @@ const cspPolicies = {
     'https://*.googletagmanager.com',
     'https://www.google.com',
   ],
-  'frame-src': ["'self'", 'https://*.firebaseapp.com', 'https://*.stripe.com', 'https://accounts.google.com'],
+  'frame-src': ["'self'", 'https://*.firebaseapp.com', 'https://*.stripe.com', 'https://accounts.google.com', 'https://*.linguil.app'],
   'media-src': ['https://storage.googleapis.com'],
 };
 
