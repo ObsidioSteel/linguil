@@ -32,11 +32,6 @@ function getFirebaseConfig(): FirebaseOptions {
     }
   }
 
-  // Force authDomain to custom domain on production to fix cross-origin auth error.
-  if (typeof window !== 'undefined' && (window.location.hostname === 'linguil.app' || window.location.hostname === 'www.linguil.app')) {
-    config.authDomain = 'linguil.app';
-  }
-
   return config as FirebaseOptions;
 }
 
