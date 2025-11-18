@@ -90,11 +90,6 @@ const nextConfig = {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
           },
-          // Restricts how cross-origin openers are identified.
-          {
-            key: 'Cross-Origin-Opener-Policy',
-            value: 'same-origin-allow-popups',
-          },
           // Mitigates cross-site scripting (XSS) attacks.
           {
             key: 'Content-Security-Policy',
