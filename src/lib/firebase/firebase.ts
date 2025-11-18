@@ -70,7 +70,7 @@ export const getFirebaseFirestore = async () => {
 // Lazily imports and returns the Firebase Functions service.
 export const getFirebaseFunctions = async () => {
   const { getFunctions } = await import('firebase/functions');
-  return getFunctions(getFirebaseApp(), 'europe-west1');
+  return getFunctions(getFirebaseApp(), 'us-central1');
 };
 
 // Lazily imports and returns the Firebase Performance service.
