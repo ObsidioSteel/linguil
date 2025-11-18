@@ -20,7 +20,7 @@ const db = admin.firestore();
 const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 
 // Handle creation of user records before the user is saved to Firebase Auth.
-export const beforeusercreated = beforeUserCreated({ region: "europe-west1", secrets: ["STRIPE_SECRET_KEY"] }, async (event) => {
+export const beforeusercreated = beforeUserCreated({ region: "us-central1", secrets: ["STRIPE_SECRET_KEY"] }, async (event) => {
   const user = event.data;
   if (!user) {
     return;
