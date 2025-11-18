@@ -13,9 +13,11 @@ const ENV_VAR_MAP: Record<keyof Omit<FirebaseOptions, 'databaseURL'>, string> = 
 
 // Loads and validates the client-side Firebase configuration from environment variables.
 function getFirebaseConfig(): FirebaseOptions {
+  const isProduction = process.env.NODE_ENV === 'production';
+
   const config = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    authDomain: isProduction ? "auth.linguil.app" : process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
     projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
     storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
@@ -28,6 +30,7 @@ function getFirebaseConfig(): FirebaseOptions {
     const configKey = key as keyof Omit<FirebaseOptions, 'databaseURL'>;
     if (!config[configKey]) {
       const envVarName = ENV_VAR_MAP[configKey];
+      if (isProduction && configKey === 'authDomain') continue;
       throw new Error(`CRITICAL: Missing Firebase environment variable: ${envVarName}.`);
     }
   }
