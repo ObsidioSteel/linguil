@@ -50,7 +50,7 @@ const AvatarFallback = forwardRef<
       ref={ref}
       className={cn(
         // Base styles for the fallback.
-        'flex h-full w-full items-center justify-center rounded-full bg-muted',
+        'flex h-full w-full items-center justify-center rounded-full bg-muted text-primary-foreground',
         // Applies bottom padding for characters with descenders.
         needsAdjustment && 'pb-1',
         className
