@@ -1,8 +1,8 @@
 // Import Firebase Admin SDK and Cloud Functions modules.
 import * as admin from "firebase-admin";
-import * as functions from "firebase-functions/v1";
 import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
+import { beforeUserCreated } from "firebase-functions/v2/identity";
 import { defineSecret } from "firebase-functions/params";
 
 // Import Stripe and its utility functions.
@@ -19,8 +19,12 @@ const db = admin.firestore();
 // Define a secret for the Stripe webhook.
 const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 
-// Handle creation of user records for all auth providers.
-export const onUserCreate = functions.region("europe-west1").runWith({secrets: ["STRIPE_SECRET_KEY"]}).auth.user().onCreate(async (user: admin.auth.UserRecord) => {
+// Handle creation of user records before the user is saved to Firebase Auth.
+export const onusercreated = beforeUserCreated({ region: "europe-west1", secrets: ["STRIPE_SECRET_KEY"] }, async (event) => {
+  const user = event.data;
+  if (!user) {
+    return;
+  }
   const stripe = getStripe();
   try {
     // Create a new customer in Stripe.
