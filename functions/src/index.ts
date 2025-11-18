@@ -23,8 +23,10 @@ const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 export const beforeusercreated = beforeUserCreated({ region: "us-central1", secrets: ["STRIPE_SECRET_KEY"] }, async (event) => {
   const user = event.data;
   if (!user) {
-    return;
+    console.error("User data was not available in beforeUserCreated event.");
+    throw new HttpsError("internal", "User data is missing in the creation event.");
   }
+
   const stripe = getStripe();
   try {
     // Create a new customer in Stripe.
@@ -47,8 +49,8 @@ export const beforeusercreated = beforeUserCreated({ region: "us-central1", secr
     // Create a document for the user in the 'users_public' collection.
     const userPublicDocRef = db.collection("users_public").doc(user.uid);
     batch.set(userPublicDocRef, {
-      displayName: user.displayName,
-      photoURL: user.photoURL,
+      displayName: user.displayName || null,
+      photoURL: user.photoURL || null,
       friendCode: user.uid,
       scores: {
         perfectScores: 0,
@@ -60,7 +62,10 @@ export const beforeusercreated = beforeUserCreated({ region: "us-central1", secr
 
     // Commit the batch write.
     await batch.commit();
+
   } catch (err) {
+    console.error(`Error in beforeusercreated for UID: ${user.uid}`, err);
+    throw new HttpsError("internal", "Failed to set up user account due to an internal error.");
   }
 });
 

@@ -22,7 +22,7 @@ export const getAuthErrorMessage = (error: unknown): string => {
   const errorObj = error as { code?: string; message?: string; details?: { code?: string } };
 
   // Check for a nested error code from a Cloud Function first.
-  let code = errorObj.details?.code || errorObj.code;
+  const code = errorObj.details?.code ?? errorObj.code;
 
   if (typeof code === 'string') {
     switch (code) {
@@ -36,7 +36,7 @@ export const getAuthErrorMessage = (error: unknown): string => {
         message = 'Email already in use';
         break;
       case 'auth/weak-password':
-        message = 'Password is too weak';
+        message = 'Password is too weak (min. 6 characters)';
         break;
       case 'auth/popup-blocked':
         message = 'Sign-in popup blocked—allow popups for linguil.app';
