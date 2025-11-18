@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Header } from '@/components/common/Header';
 import dynamic from 'next/dynamic';
 import { DarkModeToggleSwitch } from '@/components/common/DarkModeToggleSwitch';
+import { Info } from 'lucide-react';
 
 // Dynamically import components to reduce the initial bundle size.
 const AuthButton = dynamic(() => import('@/components/auth/AuthButton').then(mod => mod.AuthButton), {
@@ -35,6 +36,12 @@ export default function HomePage() {
           <div className="w-full max-w-xs flex justify-center">
             <DarkModeToggleSwitch variant="gamepage" />
           </div>
+           {/* Privacy policy link. */}
+          <Link href="/privacy" className="-mt-3">
+            <Button variant="ghost" size="icon" className="text-primary hover:bg-transparent hover:text-primary">
+                <Info />
+            </Button>
+        </Link>
           <AnalyticsTracker />
       </div>
     </ErrorBoundary>

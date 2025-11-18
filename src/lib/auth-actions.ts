@@ -55,6 +55,8 @@ export const getAuthErrorMessage = (error: unknown): string => {
 export const signInWithGoogle = async (): Promise<void> => {
   const auth = await getFirebaseAuth();
   const provider = new GoogleAuthProvider();
+  provider.addScope('profile');
+  provider.addScope('email');
   provider.setCustomParameters({ prompt: 'select_account' });
   await signInWithPopup(auth, provider);
 };
