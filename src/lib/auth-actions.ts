@@ -36,6 +36,7 @@ export const getAuthErrorMessage = (error: unknown): string => {
         message = 'Email already in use';
         break;
       case 'auth/weak-password':
+      case 'auth/invalid-password':
         message = 'Password is too weak (min. 6 characters)';
         break;
       case 'auth/popup-blocked':

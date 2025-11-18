@@ -70,7 +70,7 @@ export const beforeusercreated = beforeUserCreated({ region: "us-central1", secr
 });
 
 // Cloud Function to create a new user account.
-export const createUserAccount = onCall({ region: "europe-west1", secrets: ["STRIPE_SECRET_KEY"], memory: "256MiB", cors: true }, async (request) => {
+export const createUserAccount = onCall({ region: "us-central1", secrets: ["STRIPE_SECRET_KEY"], memory: "256MiB", cors: true }, async (request) => {
   // Destructure required parameters from the request data.
   const { name, email, password } = request.data;
 
