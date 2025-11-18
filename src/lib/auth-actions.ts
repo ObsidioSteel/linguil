@@ -13,6 +13,9 @@ import { getFirebaseAuth, getFirebaseFunctions } from '@/lib/firebase/firebase';
 
 // Maps Firebase auth error codes to user-friendly messages.
 export const getAuthErrorMessage = (error: unknown): string => {
+  // Log the entire error object to the console for detailed debugging.
+  console.error("Full error object received by getAuthErrorMessage:", JSON.stringify(error, null, 2));
+
   let message = 'An unexpected error occurred';
 
   // Cast the error to a more detailed type to inspect its properties.
@@ -58,7 +61,14 @@ export const signInWithGoogle = async (): Promise<void> => {
   provider.addScope('profile');
   provider.addScope('email');
   provider.setCustomParameters({ prompt: 'select_account' });
-  await signInWithPopup(auth, provider);
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (error) {
+    console.error("Detailed sign-in error:", error);
+    const errorCode = (error as { code?: string }).code;
+    console.error("Firebase Auth Error Code:", errorCode);
+    throw error;
+  }
 };
 
 // Authenticates a user with email and password.
