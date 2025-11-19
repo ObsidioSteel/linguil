@@ -38,21 +38,12 @@ function getFirebaseConfig(): FirebaseOptions {
   return config as FirebaseOptions;
 }
 
-// Initializes and returns a singleton Firebase app instance, handling SSR correctly.
+// Initializes and returns a singleton Firebase app instance.
 const getFirebaseApp = (): FirebaseApp => {
-  if (typeof window === 'undefined') {
-    // On the server, always use the default app instance.
-    return getApps().length > 0 ? getApp() : initializeApp(getFirebaseConfig());
+  if (getApps().length) {
+    return getApp();
   }
-
-  // On the client, use a named instance to avoid hydration conflicts and ensure the correct authDomain.
-  const clientAppName = 'client-side-app';
-  const existingApp = getApps().find(app => app.name === clientAppName);
-  if (existingApp) {
-    return existingApp;
-  }
-  
-  return initializeApp(getFirebaseConfig(), clientAppName);
+  return initializeApp(getFirebaseConfig());
 };
 
 // Lazily imports and returns the Firebase Auth service.
