@@ -56,6 +56,8 @@ export const PostPaymentHandler = () => {
           traceRef.current.start();
         }
 
+        await user.getIdToken();
+
         // Gets a Firestore database reference.
         const db = await getFirebaseFirestore();
         const { doc, onSnapshot } = await import('firebase/firestore');
