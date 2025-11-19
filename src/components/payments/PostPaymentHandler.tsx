@@ -28,7 +28,7 @@ export const PostPaymentHandler = () => {
     const currency = searchParams.get('currency');
 
     // Exit if session ID or user is missing.
-    if (!sessionId || !user) {
+    if (!sessionId || !user?.uid) {
       return;
     }
 

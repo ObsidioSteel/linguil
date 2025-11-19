@@ -126,7 +126,7 @@ export const createUserAccount = onCall({ region: "us-central1", secrets: ["STRI
 });
 
 // Firestore trigger that updates a user's aggregated scores when a new daily score is created.
-export const onDailyScoreCreate = onDocumentCreated({ document: "users/{userId}/dailyScores/{dailyScoreId}", region: "europe-west1" }, async (event) => {
+export const onDailyScoreCreate = onDocumentCreated({ document: "users/{userId}/dailyScores/{dailyScoreId}", region: "us-central1" }, async (event) => {
   try {
     // Get the user ID from the event parameters.
     const userId = event.params.userId;
@@ -177,7 +177,7 @@ export const onDailyScoreCreate = onDocumentCreated({ document: "users/{userId}/
 
 // Callable Cloud Function to create a Stripe Checkout session for a payment.
 export const createCheckoutSession = onCall({
-  region: "europe-west1",
+  region: "us-central1",
   secrets: ["STRIPE_SECRET_KEY"],
   memory: "256MiB",
   cors: true
@@ -242,7 +242,7 @@ export const createCheckoutSession = onCall({
 });
 
 // HTTP-triggered Cloud Function to handle Stripe webhooks.
-export const stripeWebhook = onRequest({ region: "europe-west1", secrets: ["STRIPE_SECRET_KEY", stripeWebhookSecret], memory: "256MiB" }, async (req, res) => {
+export const stripeWebhook = onRequest({ region: "us-central1", secrets: ["STRIPE_SECRET_KEY", stripeWebhookSecret], memory: "256MiB" }, async (req, res) => {
   // Initialize Stripe and get webhook signature.
   const stripe = getStripe();
   const signature = req.headers["stripe-signature"];
@@ -288,7 +288,7 @@ export const stripeWebhook = onRequest({ region: "europe-west1", secrets: ["STRI
 });
 
 // Firestore trigger to synchronize the 'hasPaid' status with Firebase Auth custom claims.
-export const onUserUpdate = onDocumentUpdated({ document: "users/{userId}", region: "europe-west1" }, async (event) => {
+export const onUserUpdate = onDocumentUpdated({ document: "users/{userId}", region: "us-central1" }, async (event) => {
   try {
     // Exit if there's no event data.
     if (!event.data) {
