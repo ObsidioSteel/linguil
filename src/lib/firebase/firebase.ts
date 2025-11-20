@@ -13,7 +13,6 @@ const ENV_VAR_MAP: Record<keyof Omit<FirebaseOptions, 'databaseURL'>, string> = 
 
 // Loads and validates the client-side Firebase configuration from environment variables.
 function getFirebaseConfig(): FirebaseOptions {
-  console.log("Attempting to load Firebase config. API Key:", process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
   const isProduction = process.env.NODE_ENV === 'production';
 
   const config = {

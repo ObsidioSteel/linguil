@@ -37,7 +37,6 @@ firebase-debug.log*
 knip.json
 next-env.d.ts
 service-account.json
-apphosting.yaml
 
 # Firebase
 /.firebase/
