@@ -2,23 +2,25 @@
 
 import { useEffect, memo } from 'react';
 import { usePathname } from 'next/navigation';
-import { getFirebaseAnalytics } from '@/lib/firebase/firebase';
+import { getFirebaseAnalytics, getFirebasePerformance } from '@/lib/firebase/firebase';
 
-// Tracks page views using Firebase Analytics.
+// Tracks page views and performance using Firebase.
 const AnalyticsTracker = memo(() => {
   // Gets the current URL path.
   const pathname = usePathname();
 
-  // Logs a page_view event whenever the path changes.
+  // Initializes services and logs page views.
   useEffect(() => {
-    const trackPageView = async () => {
+    const initializeFirebaseServices = async () => {
       try {
+        // Initialize Performance Monitoring on every page load.
+        getFirebasePerformance();
+
         // Lazily retrieves the Firebase Analytics instance.
         const analytics = await getFirebaseAnalytics();
         // Skips tracking if analytics is unavailable.
-        if (!analytics) {
-          return;
-        }
+        if (!analytics) return;
+
         // Dynamically imports and uses the logEvent function.
         const { logEvent } = await import('firebase/analytics');
         logEvent(analytics, 'page_view', { page_path: pathname });
@@ -26,7 +28,7 @@ const AnalyticsTracker = memo(() => {
         // Silently fails on errors to avoid impacting user experience.
       }
     };
-    trackPageView();
+    initializeFirebaseServices();
   }, [pathname]);
 
   // This component does not render any UI.
