@@ -36,6 +36,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="icon" href="/icon.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/icon.png" type="image/png" />
         {/* This script immediately sets the color mode to prevent theme flashing on load. */}
         <script
           dangerouslySetInnerHTML={{

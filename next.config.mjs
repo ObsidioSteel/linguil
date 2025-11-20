@@ -97,7 +97,7 @@ const nextConfig = {
           },
           // Mitigates cross-site scripting (XSS) attacks.
           {
-            key: 'Content-Security-Policy-Report-Only',
+            key: 'Content-Security-Policy',
             value: buildCsp(cspPolicies),
           },
           // Controls browser features and APIs.
