@@ -32,6 +32,7 @@ const cspPolicies = {
     'https://*.firebaseio.com',
     'wss://*.firebaseio.com',
     'https://*.googleapis.com',
+    'https://firebaseperformance.googleapis.com',
     'https://identitytoolkit.googleapis.com',
     'https://accounts.google.com',
     'https://*.stripe.com',
