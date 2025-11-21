@@ -8,7 +8,7 @@ import { memo } from 'react';
 const Header = memo(() => {
   return (
     <header className="mb-2 flex justify-center">
-      <Link href="/" aria-label="Homepage" className="block">
+      <Link href="/" aria-label="Homepage" className="block w-[240px] h-[70px]">
         <Image
           src="/logo.png"
           alt="linguil logo"
