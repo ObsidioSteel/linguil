@@ -3,11 +3,11 @@ env:
   - variable: BUNDLE_UTILS
     value: "true" # Bundles the utils package with the server build.
   - variable: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-    value: "pk_test_51S5yOpRSucK2OCp3kpoJumhBiQUOoxZdJVLgIHkjqzGc2ehQVHArwwewkM8VxIm4ekznEVTR2F0OVwZqN6HHwKtO00m0PFywrP"
+    value: "pk_live_51S5yOfIpjjTFqpDKAlzvaysa5LqDyT6Deeg7mG7ZBq4Pde3dZJkQAv9VZCVLBWFiaTRAeKZ3Ilvsydlnez9s4EQA0069d7cFWU"
   - variable: NEXT_PUBLIC_STRIPE_PRICE_ID_FIXED
-    value: "price_1S5ykURSucK2OCp3r6SIKfTM"
+    value: "price_1SVxX3IpjjTFqpDKAFZWKyXy"
   - variable: NEXT_PUBLIC_STRIPE_PRICE_ID_CUSTOM
-    value: "price_1S5ykURSucK2OCp3qrE3DyMV"
+    value: "price_1SVxX3IpjjTFqpDKNYOhCteE"
   - variable: NEXT_PUBLIC_FIREBASE_CHECKOUT_FUNCTION_URL
     value: "https://europe-west1-linguil.cloudfunctions.net/createStripeCheckoutSession"
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY

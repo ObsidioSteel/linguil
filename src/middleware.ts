@@ -7,8 +7,6 @@ const cspPolicies = {
     "'self'",
     "'unsafe-eval'", // Required for Firebase and Google APIs.
     "'unsafe-inline'", // Required for Firebase and Google Analytics inline scripts.
-    // Nonce will be added here by the middleware.
-    "'strict-dynamic'",
     'https://www.gstatic.com/firebasejs/',
     'https://js.stripe.com',
     'https://apis.google.com',
@@ -53,34 +51,19 @@ const cspPolicies = {
 };
 
 // Constructs a Content-Security-Policy string from a policy object.
-const buildCsp = (policies: Record<string, string[]>, nonce: string) => {
+const buildCsp = (policies: Record<string, string[]>) => {
   const policyStrings = Object.entries(policies).map(([key, value]) => {
-    if (key === 'script-src') {
-      // Add the nonce to the script-src directive.
-      return `${key} ${[...value, `'nonce-${nonce}'`].join(' ')}`;
-    }
     return `${key} ${value.join(' ')}`;
   });
   return policyStrings.join('; ');
 };
 
 export function middleware(request: NextRequest) {
-  // Generate a random nonce for each request.
-  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
-
-  // Clone the request headers and set the nonce.
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set('x-nonce', nonce);
-
-  // Create the response object with the updated headers.
-  const response = NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  });
+  // Create the response object.
+  const response = NextResponse.next();
 
   // Build and set the Content-Security-Policy header on the response.
-  const csp = buildCsp(cspPolicies, nonce);
+  const csp = buildCsp(cspPolicies);
   response.headers.set('Content-Security-Policy', csp);
 
   return response;
