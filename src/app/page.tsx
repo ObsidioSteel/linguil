@@ -37,11 +37,11 @@ export default function HomePage() {
             <DarkModeToggleSwitch variant="gamepage" />
           </div>
            {/* Privacy policy link. */}
-          <Link href="/privacy" className="-mt-3">
-            <Button variant="ghost" size="icon" className="text-primary hover:bg-transparent hover:text-primary">
-                <Info />
-            </Button>
-        </Link>
+          <Button asChild variant="ghost" size="icon" className="text-primary hover:bg-transparent hover:text-primary -mt-3">
+            <Link href="/privacy" aria-label="Privacy Policy">
+              <Info />
+            </Link>
+          </Button>
           <AnalyticsTracker />
       </div>
     </ErrorBoundary>

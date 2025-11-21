@@ -16,6 +16,7 @@ const Header = memo(() => {
           height={70}
           priority
           fetchPriority="high"
+          sizes="240px"
           data-ai-hint="logo simple"
         />
       </Link>

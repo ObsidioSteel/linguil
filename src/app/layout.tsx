@@ -36,9 +36,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/icon.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/icon.png" type="image/png" />
-        {/* This script immediately sets the color mode to prevent theme flashing on load. */}
+        {/* Immediately sets the color mode to prevent theme flashing on load. */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -65,9 +63,9 @@ export default function RootLayout({
           }}
         />
         {/* Preconnect to external services to accelerate loading. */}
-        <link rel="preconnect" href="https://www.googletagmanager.com" />
-        <link rel="preconnect" href="https://apis.google.com" />
-        <link rel="preconnect" href="https://www.google-analytics.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://auth.linguil.app" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://www.googletagmanager.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://apis.google.com" crossOrigin="anonymous" />
       </head>
       {/* Apply fonts and layout styles to the body. */}
       <body className={`${ptSans.variable} ${sourceCodePro.variable} font-body antialiased flex flex-col min-h-screen overflow-x-hidden`}>

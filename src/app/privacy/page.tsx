@@ -68,7 +68,7 @@ export default function PrivacyPolicyPage() {
 
       <h2 className="text-2xl font-bold mt-6 mb-4">6. Contact us</h2>
       <p className="mb-12">
-        If you have any questions or concerns about this privacy policy, please contact us at charliemccombie@gmail.com.
+        If you have any questions or concerns about this privacy policy, please contact us at <a href="mailto:charliemccombie@gmail.com" className="text-blue-600 hover:underline">charliemccombie@gmail.com</a>.
       </p>
     </main>
   );

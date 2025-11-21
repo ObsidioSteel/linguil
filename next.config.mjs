@@ -44,6 +44,7 @@ const cspPolicies = {
     'https://*.analytics.google.com',
     'https://clientservices.googleapis.com',
     'https://*.google.com',
+    'https://ssl.gstatic.com',
     'https://*.linguil.app',
   ],
   'img-src': [
@@ -109,6 +110,30 @@ const nextConfig = {
           {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
+          },
+          // Isolates the page from other browser contexts for security.
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin-allow-popups',
+          },
+        ],
+      },
+      // Apply long-term caching to static assets.
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/(logo.png|icon.png)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
           },
         ],
       },
