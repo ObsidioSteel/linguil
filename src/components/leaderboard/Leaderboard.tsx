@@ -10,13 +10,13 @@ import dynamic from 'next/dynamic';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
 // Dynamically import `ScoreRadialChart` with a loading fallback.
-const ScoreRadialChart = dynamic(() => import('./ScoreRadialChart').then(mod => ({ default: mod.ScoreRadialChart })), {
+const ScoreRadialChart = dynamic(() => import('./ScoreRadialChart').then(mod => mod.ScoreRadialChart), {
   loading: () => <div className="relative w-full aspect-square max-h-[400px] min-h-[300px] flex items-center justify-center"><LoadingSpinner /></div>,
   ssr: false // Disable SSR for this component.
 });
 
 // Dynamically import `ScoreBarChart` with a loading fallback.
-const ScoreBarChart = dynamic(() => import('./ScoreBarChart').then(mod => ({ default: mod.ScoreBarChart })), {
+const ScoreBarChart = dynamic(() => import('./ScoreBarChart').then(mod => mod.ScoreBarChart), {
   loading: () => <div className="h-[90px] flex items-center justify-center"><LoadingSpinner /></div>,
   ssr: false // Disable SSR for this component.
 });

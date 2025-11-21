@@ -103,18 +103,20 @@ const LeaderboardPageClient = () => {
                 </div>
             </div>
 
-            {/* Show the AddFriendCard if the user is authenticated. */}
-            {user && (
-            <AddFriendCard
+            {/* Show the AddFriendCard if the user is authenticated, otherwise show a placeholder to prevent layout shift. */}
+            {user ? (
+              <AddFriendCard
                 friendUid={friendUid}
                 onFriendUidChange={setFriendUid}
                 onAddFriend={async (uid: string) => {
-                await handleAddFriend(uid);
-                setFriendUid('');
+                  await handleAddFriend(uid);
+                  setFriendUid('');
                 }}
                 onCopy={handleCopy}
                 user={user as User}
-            />
+              />
+            ) : (
+              <div className="min-h-[260px] lg:min-h-[180px]" />
             )}
         </div>
     </div>

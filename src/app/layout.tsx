@@ -66,6 +66,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://auth.linguil.app" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://www.googletagmanager.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://apis.google.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://firebase.googleapis.com" crossOrigin="anonymous" />
       </head>
       {/* Apply fonts and layout styles to the body. */}
       <body className={`${ptSans.variable} ${sourceCodePro.variable} font-body antialiased flex flex-col min-h-screen overflow-x-hidden`}>
