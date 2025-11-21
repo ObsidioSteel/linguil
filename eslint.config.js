@@ -5,7 +5,7 @@ import hooksPlugin from "eslint-plugin-react-hooks";
 import nextPlugin from "@next/eslint-plugin-next";
 import importPlugin from "eslint-plugin-import";
 
-export default tseslint.config(
+export default [
   // Global ignores for all configurations.
   {
     ignores: [
@@ -90,4 +90,4 @@ export default tseslint.config(
       "import/no-unresolved": "error", // Ensures all imports can be resolved.
     },
   }
-);
+];
