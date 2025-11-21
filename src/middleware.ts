@@ -56,7 +56,7 @@ const buildCsp = (policies: Record<string, string[]>) => {
     .join('; ');
 };
 
-export function middleware(request: NextRequest) {
+export function middleware() {
   const response = NextResponse.next();
   const csp = buildCsp(cspPolicies);
   response.headers.set('Content-Security-Policy', csp);
