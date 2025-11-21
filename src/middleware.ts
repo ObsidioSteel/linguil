@@ -47,25 +47,19 @@ const cspPolicies = {
   ],
   'frame-src': ["'self'", 'https://*.firebaseapp.com', 'https://*.stripe.com', 'https://accounts.google.com', 'https://linguil.app', 'https://*.linguil.app'],
   'media-src': ['https://storage.googleapis.com', 'https://*.linguil.app'],
-  'require-trusted-types-for': ["'script'"],
 };
 
 // Constructs a Content-Security-Policy string from a policy object.
 const buildCsp = (policies: Record<string, string[]>) => {
-  const policyStrings = Object.entries(policies).map(([key, value]) => {
-    return `${key} ${value.join(' ')}`;
-  });
-  return policyStrings.join('; ');
+  return Object.entries(policies)
+    .map(([key, value]) => `${key} ${value.join(' ')}`)
+    .join('; ');
 };
 
 export function middleware(request: NextRequest) {
-  // Create the response object.
   const response = NextResponse.next();
-
-  // Build and set the Content-Security-Policy header on the response.
   const csp = buildCsp(cspPolicies);
   response.headers.set('Content-Security-Policy', csp);
-
   return response;
 }
 
