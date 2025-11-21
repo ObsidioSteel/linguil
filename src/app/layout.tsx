@@ -40,6 +40,11 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Loads the Trusted Types policy to enforce script security. */}
+        <script
+          nonce={nonce}
+          src="/trusted-types.js"
+        ></script>
         {/* Immediately sets the color mode to prevent theme flashing on load. */}
         <script
           nonce={nonce}
