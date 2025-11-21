@@ -45,7 +45,7 @@ const LeaderboardPageClient = () => {
   const [friendUid, setFriendUid] = useState('');
 
   // Get leaderboard data and functions from the useLeaderboard hook.
-  const { players, handleAddFriend, handleRemoveFriend, handleUpdateName } = useLeaderboard();
+  const { players, handleAddFriend, handleRemoveFriend, handleUpdateName } = useLeaderboard(user);
 
   // Function to copy the user's UID to the clipboard.
   const handleCopy = () => {

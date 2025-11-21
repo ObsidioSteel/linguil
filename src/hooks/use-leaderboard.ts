@@ -3,14 +3,13 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Unsubscribe } from 'firebase/firestore';
 import type { PlayerStats } from '@/types';
-import { useAuth } from './use-auth';
 import { useToast } from '@/hooks/use-toast';
 import useFriends from './use-friends';
 import { getFirebaseFirestore } from '@/lib/firebase/firebase';
+import type { User } from 'firebase/auth';
 
 // Manages and displays the leaderboard.
-export const useLeaderboard = () => {
-  const { user, addSignOutCleanup, removeSignOutCleanup } = useAuth(); // Gets the current user from auth context.
+export const useLeaderboard = (user: User | null) => {
   const [players, setPlayers] = useState<PlayerStats[]>([]); // Holds player statistics.
   const { toast } = useToast(); // Hook for showing toast notifications.
   
@@ -44,12 +43,6 @@ export const useLeaderboard = () => {
     friendUidsRef.current = [];
     isInitialLoadRef.current = true;
   }, []);
-
-  // Registers the listener cleanup function for sign-out.
-  useEffect(() => {
-    addSignOutCleanup(cleanupListeners);
-    return () => removeSignOutCleanup(cleanupListeners);
-  }, [addSignOutCleanup, removeSignOutCleanup, cleanupListeners]);
 
   // Sets up real-time Firestore listeners for the user and their friends.
   const setupListeners = useCallback(async (uid: string, friendUids: string[]) => {
