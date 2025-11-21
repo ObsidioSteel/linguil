@@ -6,6 +6,7 @@ import type { Metadata } from 'next';
 import { PT_Sans, Source_Code_Pro } from 'next/font/google';
 import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
+import { headers } from 'next/headers';
 
 // Import custom components.
 import { ConditionalHeader } from '@/components/common/ConditionalHeader';
@@ -28,16 +29,20 @@ export const metadata: Metadata = {
 };
 
 // Define the root layout component for the entire application.
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = await headers();
+  const nonce = headersList.get('x-nonce') || '';
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         {/* Immediately sets the color mode to prevent theme flashing on load. */}
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `
               (function() {

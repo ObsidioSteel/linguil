@@ -28,7 +28,13 @@ const AnalyticsTracker = memo(() => {
         // Silently fails on errors to avoid impacting user experience.
       }
     };
-    initializeFirebaseServices();
+
+    // Defer the initialization of Firebase services to prevent blocking the main thread during initial page load.
+    const timer = setTimeout(() => {
+        initializeFirebaseServices();
+    }, 2000);
+
+    return () => clearTimeout(timer);
   }, [pathname]);
 
   // This component does not render any UI.

@@ -4,62 +4,6 @@ const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 });
 
-// Constructs a Content-Security-Policy string from a policy object.
-const buildCsp = (policies) => {
-  return Object.entries(policies)
-    .map(([key, value]) => `${key} ${value.join(' ')}`)
-    .join('; ');
-};
-
-// Defines the Content Security Policy rules.
-const cspPolicies = {
-  'default-src': ["'self'"],
-  'script-src': [
-    "'self'",
-    "'unsafe-eval'", // Required for Firebase and Google APIs.
-    "'unsafe-inline'", // Required for specific inline scripts.
-    'https://www.gstatic.com/firebasejs/',
-    'https://js.stripe.com',
-    'https://apis.google.com',
-    'https://*.googletagmanager.com',
-    'https://accounts.google.com',
-    'https://*.linguil.app',
-  ],
-  'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://accounts.google.com'],
-  'font-src': ["'self'", 'https://fonts.gstatic.com'],
-  'connect-src': [
-    "'self'",
-    'https://*.firebaseio.com',
-    'wss://*.firebaseio.com',
-    'https://*.googleapis.com',
-    'https://firebaseperformance.googleapis.com',
-    'https://identitytoolkit.googleapis.com',
-    'https://accounts.google.com',
-    'https://*.stripe.com',
-    'https://*.google-analytics.com',
-    'https://*.cloudfunctions.net',
-    'https://*.paypal.com',
-    'https://apis.google.com',
-    'https://play.google.com',
-    'https://*.analytics.google.com',
-    'https://clientservices.googleapis.com',
-    'https://*.google.com',
-    'https://ssl.gstatic.com',
-    'https://*.linguil.app',
-  ],
-  'img-src': [
-    "'self'",
-    'data:',
-    'https://lh3.googleusercontent.com',
-    'blob:',
-    'https://*.googletagmanager.com',
-    'https://www.google.com',
-    'https://*.linguil.app',
-  ],
-  'frame-src': ["'self'", 'https://*.firebaseapp.com', 'https://*.stripe.com', 'https://accounts.google.com', 'https://linguil.app', 'https://*.linguil.app'],
-  'media-src': ['https://storage.googleapis.com', 'https://*.linguil.app',],
-};
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Disables production source maps for security and performance.
@@ -95,11 +39,6 @@ const nextConfig = {
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
-          },
-          // Mitigates cross-site scripting (XSS) attacks.
-          {
-            key: 'Content-Security-Policy',
-            value: buildCsp(cspPolicies),
           },
           // Controls browser features and APIs.
           {

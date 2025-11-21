@@ -11,6 +11,7 @@ import dynamic from 'next/dynamic';
 import { DarkModeToggleSwitch } from '@/components/common/DarkModeToggleSwitch';
 import type { PlayerStats } from '@/types';
 import type { User } from 'firebase/auth';
+import MockLeaderboard from './MockLeaderboard';
 
 // Dynamically import the Leaderboard component to reduce bundle size, with a loading spinner as a fallback.
 const Leaderboard = dynamic(() => import('@/components/leaderboard/Leaderboard').then(mod => mod.Leaderboard), {
@@ -31,12 +32,10 @@ const CHART_COLORS = [
     'hsl(43 74% 66%)', // Yellow-Orange
     'hsl(350 65% 65%)', // Pinkish-Red
     'hsl(210 35% 55%)', // Blue
-  ];
+];
 
 // This component renders the client-side logic for the leaderboard page.
-const LeaderboardPageClient = () => {
-  // Get user authentication status and data from the useAuth hook.
-  const { user, loading } = useAuth();
+const AuthenticatedView = ({ user }: { user: User }) => {
   // Get the toast function for displaying notifications.
   const { toast } = useToast();
   // Use local storage to persist the selected chart color.
@@ -58,6 +57,48 @@ const LeaderboardPageClient = () => {
     }
   };
 
+  return (
+    <>
+        <div className="relative">
+            {/* Show DarkModeToggleSwitch if the user is authenticated. */}
+            {user && (
+                <div className="absolute top-6 right-6 z-20">
+                    <DarkModeToggleSwitch variant="gamepage" />
+                </div>
+            )}
+            {/* The Leaderboard is rendered with the user's actual data. */}
+            <Leaderboard 
+                players={players as PlayerStats[]} 
+                chartColor={chartColor} 
+                onChartColorChange={setChartColor}
+                onRemoveFriend={handleRemoveFriend}
+                onUpdateName={handleUpdateName}
+                currentUserId={user?.uid}
+            />
+        </div>
+
+        {/* Show the AddFriendCard if the user is authenticated. */}
+        {user ? (
+          <AddFriendCard
+            friendUid={friendUid}
+            onFriendUidChange={setFriendUid}
+            onAddFriend={async (uid: string) => {
+              await handleAddFriend(uid);
+              setFriendUid('');
+            }}
+            onCopy={handleCopy}
+            user={user as User}
+          />
+        ) : null}
+    </>
+  )
+}
+
+// This component renders the client-side logic for the leaderboard page.
+const LeaderboardPageClient = () => {
+  // Get user authentication status and data from the useAuth hook.
+  const { user, loading } = useAuth();
+
   // Show a loading spinner while checking the authentication status.
   if (loading) {
     return <div className="min-h-screen flex justify-center items-center"><LoadingSpinner /></div>;
@@ -76,48 +117,7 @@ const LeaderboardPageClient = () => {
             )}
             </div>
 
-            <div className="relative">
-                {/* Show DarkModeToggleSwitch if the user is authenticated. */}
-                {user && (
-                    <div className="absolute top-6 right-6 z-20">
-                        <DarkModeToggleSwitch variant="gamepage" />
-                    </div>
-                )}
-                {/* Show an overlay and sign-in button if the user is not authenticated. */}
-                {!user && (
-                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-lg">
-                        <p className="sr-only">Sign in to replace the leaderboard preview with your personal leaderboard</p>
-                        <AuthButton />
-                    </div>
-                )}
-                 {/* Make the leaderboard inert (not interactive) if the user is not signed in. */}
-                <div {...(!user && { inert: true })}>
-                  <Leaderboard 
-                      players={players as PlayerStats[]} 
-                      chartColor={chartColor} 
-                      onChartColorChange={setChartColor}
-                      onRemoveFriend={handleRemoveFriend}
-                      onUpdateName={handleUpdateName}
-                      currentUserId={user?.uid}
-                  />
-                </div>
-            </div>
-
-            {/* Show the AddFriendCard if the user is authenticated, otherwise show a placeholder to prevent layout shift. */}
-            {user ? (
-              <AddFriendCard
-                friendUid={friendUid}
-                onFriendUidChange={setFriendUid}
-                onAddFriend={async (uid: string) => {
-                  await handleAddFriend(uid);
-                  setFriendUid('');
-                }}
-                onCopy={handleCopy}
-                user={user as User}
-              />
-            ) : (
-              <div className="min-h-[260px] lg:min-h-[180px]" />
-            )}
+            {user ? <AuthenticatedView user={user} /> : <MockLeaderboard />}
         </div>
     </div>
   );
