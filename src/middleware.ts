@@ -6,6 +6,7 @@ const cspPolicies = {
   'script-src': [
     "'self'",
     "'unsafe-eval'", // Required for Firebase and Google APIs.
+    "'unsafe-inline'", // Required for Firebase and Google Analytics inline scripts.
     // Nonce will be added here by the middleware.
     "'strict-dynamic'",
     'https://www.gstatic.com/firebasejs/',

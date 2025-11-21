@@ -8,7 +8,7 @@ import { memo } from 'react';
 const Header = memo(() => {
   return (
     <header className="mb-2 flex justify-center">
-      <Link href="/" aria-label="Homepage" className="block w-[240px] h-[70px]">
+      <Link href="/" aria-label="Homepage" className="block">
         <Image
           src="/logo.png"
           alt="linguil logo"
@@ -16,7 +16,6 @@ const Header = memo(() => {
           height={70}
           priority
           fetchPriority="high"
-          sizes="240px"
           data-ai-hint="logo simple"
         />
       </Link>
