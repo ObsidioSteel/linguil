@@ -9,17 +9,15 @@ const Header = memo(() => {
   return (
     <header className="mb-2 flex justify-center">
       <Link href="/" aria-label="Homepage" className="block">
-        <div style={{ width: '240px', height: '70px', position: 'relative' }}>
           <Image
             src="/logo.png"
             alt="linguil logo"
-            fill
-            style={{ objectFit: 'contain' }}
+            width={240}
+            height={70}
             priority
             fetchPriority="high"
-            data-ai-hint="logo simple"
+            data-ai-hint="linguil logo"
           />
-        </div>
       </Link>
     </header>
   );
