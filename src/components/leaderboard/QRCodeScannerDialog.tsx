@@ -65,13 +65,11 @@ const QRCodeScannerDialog = memo<QRCodeScannerDialogProps>(({ onScanSuccess, sma
             Scan a QR code with your device&apos;s camera or upload an image to add a friend.
           </DialogDescription>
         </VisuallyHidden>
-        {isOpen && (
-          <QRCodeScanner
-            ref={scannerRef}
-            onScanSuccess={handleScan}
-            fileInputRef={fileInputRef}
-          />
-        )}
+        <QRCodeScanner
+          ref={scannerRef}
+          onScanSuccess={handleScan}
+          fileInputRef={fileInputRef}
+        />
       </DialogContent>
     </Dialog>
   );

@@ -65,14 +65,6 @@ const cspHeader = buildCsp(cspPolicies);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enables production source maps for debugging.
-  productionBrowserSourceMaps: true,
-
-  // Prevents next-dev-overlay from being bundled in production.
-  devIndicators: {
-    buildActivity: false,
-  },
-
   // Optimizes images to modern formats like AVIF and WebP.
   images: {
     formats: ['image/avif', 'image/webp'],
