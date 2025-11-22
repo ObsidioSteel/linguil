@@ -11,12 +11,6 @@
     "analyze": "ANALYZE=true next build",
     "knip": "knip"
   },
-  "browserslist": [
-    "last 1 chrome version",
-    "last 1 firefox version",
-    "last 1 safari version",
-    "last 1 edge version"
-  ],
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.15",
