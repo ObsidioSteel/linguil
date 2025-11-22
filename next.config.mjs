@@ -4,10 +4,69 @@ const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 });
 
+// Defines the Content Security Policy rules.
+const cspPolicies = {
+  'default-src': ["'self'"],
+  'script-src': [
+    "'self'",
+    "'unsafe-eval'", // Required for Firebase and Google APIs.
+    "'unsafe-inline'", // Required for Firebase and Google Analytics inline scripts.
+    'https://www.gstatic.com/firebasejs/',
+    'https://js.stripe.com',
+    'https://apis.google.com',
+    'https://*.googletagmanager.com',
+    'https://accounts.google.com',
+    'https://*.linguil.app',
+  ],
+  'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://accounts.google.com'],
+  'font-src': ["'self'", 'https://fonts.gstatic.com'],
+  'connect-src': [
+    "'self'",
+    'https://*.firebaseio.com',
+    'wss://*.firebaseio.com',
+    'https://*.googleapis.com',
+    'https://firebaseperformance.googleapis.com',
+    'https://identitytoolkit.googleapis.com',
+    'https://accounts.google.com',
+    'https://*.stripe.com',
+    'https://*.google-analytics.com',
+    'https://*.cloudfunctions.net',
+    'https://*.paypal.com',
+    'https://apis.google.com',
+    'https://play.google.com',
+    'https://*.analytics.google.com',
+    'https://clientservices.googleapis.com',
+    'https://*.google.com',
+    'https://ssl.gstatic.com',
+    'https://*.linguil.app',
+  ],
+  'img-src': [
+    "'self'",
+    'data:',
+    'https://lh3.googleusercontent.com',
+    'blob:',
+    'https://*.googletagmanager.com',
+    'https://www.google.com',
+    'https://*.linguil.app',
+  ],
+  'frame-src': ["'self'", 'https://*.firebaseapp.com', 'https://*.stripe.com', 'https://accounts.google.com', 'https://linguil.app', 'https://*.linguil.app'],
+  'media-src': ['https://storage.googleapis.com', 'https://*.linguil.app'],
+};
+
+// Constructs a Content-Security-Policy string from a policy object.
+const buildCsp = (policies) => {
+  return Object.entries(policies)
+    .map(([key, value]) => `${key} ${value.join(' ')}`)
+    .join('; ');
+};
+
+const cspHeader = buildCsp(cspPolicies);
+
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Disables production source maps for security and performance.
-  productionBrowserSourceMaps: false,
+  // Enables production source maps for debugging.
+  productionBrowserSourceMaps: true,
 
   // Prevents next-dev-overlay from being bundled in production.
   devIndicators: {
@@ -25,10 +84,9 @@ const nextConfig = {
       {
         source: '/(.*)',
         headers: [
-          // Allows CDNs to serve stale content while revalidating.
           {
-            key: 'Cache-Control',
-            value: 'public, s-maxage=86400, stale-while-revalidate=31536000',
+            key: 'Content-Security-Policy',
+            value: cspHeader,
           },
           // Enforces HTTPS for all future visits.
           {

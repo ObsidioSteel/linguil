@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, memo, useEffect, type ButtonHTMLAttributes } from 'react';
+import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -9,8 +10,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { QRCodeScanner, type QRCodeScannerRef } from './QRCodeScanner';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+import type { QRCodeScannerRef } from './QRCodeScanner';
+
+// Dynamically import the QRCodeScanner component to lazy-load it.
+const QRCodeScanner = dynamic(() => import('./QRCodeScanner').then(mod => mod.QRCodeScanner), {
+  ssr: false, // This component uses browser-specific APIs, so it should not be rendered on the server.
+});
 
 // Props for QRCodeScannerDialog.
 type QRCodeScannerDialogProps = {
@@ -59,11 +65,13 @@ const QRCodeScannerDialog = memo<QRCodeScannerDialogProps>(({ onScanSuccess, sma
             Scan a QR code with your device&apos;s camera or upload an image to add a friend.
           </DialogDescription>
         </VisuallyHidden>
-        <QRCodeScanner
-          ref={scannerRef}
-          onScanSuccess={handleScan}
-          fileInputRef={fileInputRef}
-        />
+        {isOpen && (
+          <QRCodeScanner
+            ref={scannerRef}
+            onScanSuccess={handleScan}
+            fileInputRef={fileInputRef}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -66,7 +66,6 @@ export default async function RootLayout({
         {/* Preconnect to external services to accelerate loading. */}
         <link rel="preconnect" href="https://auth.linguil.app" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://www.googletagmanager.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://apis.google.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://firebase.googleapis.com" crossOrigin="anonymous" />
       </head>
       {/* Apply fonts and layout styles to the body. */}

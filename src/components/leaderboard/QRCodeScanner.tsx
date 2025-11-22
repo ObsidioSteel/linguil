@@ -34,11 +34,11 @@ const QRCodeScanner = memo(forwardRef<QRCodeScannerRef, QRCodeScannerProps>(({ o
 
   // Stops the camera scan.
   const stopCameraScan = useCallback(async (): Promise<void> => {
-    if (html5QrCodeRef.current?.isScanning) {
+    if (html5QrCodeRef.current) {
       try {
         await html5QrCodeRef.current.stop();
       } catch {
-        // Ignore errors on stop, component may be unmounting.
+        // Ignore errors on stop, component may be unmounting or camera may not have started.
       }
     }
     html5QrCodeRef.current = null;
@@ -98,9 +98,7 @@ const QRCodeScanner = memo(forwardRef<QRCodeScannerRef, QRCodeScannerProps>(({ o
     // Cleanup to stop the scan on unmount.
     return () => {
       isMounted = false;
-      if (html5QrCodeRef.current?.isScanning) {
-        stopCameraScan();
-      }
+      stopCameraScan();
     };
   }, [view, onScanSuccess, stopCameraScan]);
 
