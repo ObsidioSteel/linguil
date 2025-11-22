@@ -1,14 +1,11 @@
 'use client';
 
 import { memo, useMemo } from 'react';
-import dynamic from 'next/dynamic';
 import type { PlayerStats } from '@/types';
-
-// Dynamically import Recharts components to reduce initial bundle size.
-const RadialBarChart = dynamic(() => import('recharts/es6/chart/RadialBarChart').then(mod => mod.RadialBarChart), { ssr: false });
-const RadialBar = dynamic(() => import('recharts/es6/polar/RadialBar').then(mod => mod.RadialBar), { ssr: false });
-const PolarAngleAxis = dynamic(() => import('recharts/es6/polar/PolarAngleAxis').then(mod => mod.PolarAngleAxis), { ssr: false });
-const LabelList = dynamic(() => import('recharts/es6/component/LabelList').then(mod => mod.LabelList), { ssr: false });
+import { RadialBarChart } from 'recharts/es6/chart/RadialBarChart';
+import { RadialBar } from 'recharts/es6/polar/RadialBar';
+import { PolarAngleAxis } from 'recharts/es6/polar/PolarAngleAxis';
+import { LabelList } from 'recharts/es6/component/LabelList';
 
 // Data shape for a point in the radial chart.
 type SuccessRateDataPoint = {

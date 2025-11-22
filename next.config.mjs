@@ -9,6 +9,11 @@ const nextConfig = {
   // Disables production source maps for security and performance.
   productionBrowserSourceMaps: false,
 
+  // Prevents next-dev-overlay from being bundled in production.
+  devIndicators: {
+    buildActivity: false,
+  },
+
   // Optimizes images to modern formats like AVIF and WebP.
   images: {
     formats: ['image/avif', 'image/webp'],

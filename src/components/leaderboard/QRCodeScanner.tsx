@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 
 // Dynamically import `html5-qrcode` to reduce bundle size.
-const getHtml5QrcodeEsm = () => import('html5-qrcode/esm/html5-qrcode');
-const getHtml5QrcodeCoreEsm = () => import('html5-qrcode/esm/core');
+const getHtml5Qrcode = () => import('html5-qrcode');
 
 // Props for QRCodeScanner.
 type QRCodeScannerProps = {
@@ -57,10 +56,7 @@ const QRCodeScanner = memo(forwardRef<QRCodeScannerRef, QRCodeScannerProps>(({ o
       if (!scannerRef.current) return;
 
       // Dynamically load required modules.
-      const [{ Html5Qrcode }, { Html5QrcodeSupportedFormats }] = await Promise.all([
-        getHtml5QrcodeEsm(),
-        getHtml5QrcodeCoreEsm()
-      ]);
+      const { Html5Qrcode, Html5QrcodeSupportedFormats } = await getHtml5Qrcode();
 
       // Create a new scanner instance.
       const newHtml5QrCode = new Html5Qrcode(scannerRef.current.id, {
@@ -125,7 +121,7 @@ const QRCodeScanner = memo(forwardRef<QRCodeScannerRef, QRCodeScannerProps>(({ o
     }
 
     try {
-      const { Html5Qrcode } = await getHtml5QrcodeEsm();
+      const { Html5Qrcode } = await getHtml5Qrcode();
       const newHtml5QrCode = new Html5Qrcode(scannerRef.current.id, false);
       const decodedText = await newHtml5QrCode.scanFile(file, true);
       onScanSuccess(decodedText);
