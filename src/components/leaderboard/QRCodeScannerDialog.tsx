@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, memo, useEffect, useCallback, type ButtonHTMLAttributes } from 'react';
+import { useState, useRef, memo, useEffect, type ButtonHTMLAttributes } from 'react';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,10 +44,10 @@ const QRCodeScannerDialog = memo<QRCodeScannerDialogProps>(({ onScanSuccess, sma
   }, [isOpen]);
 
   // Handles a successful scan, calls the parent callback, and closes the dialog.
-  const handleScan = useCallback((decodedText: string) => {
+  const handleScan = (decodedText: string) => {
     onScanSuccess(decodedText);
     setIsOpen(false);
-  }, [onScanSuccess]);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
