@@ -5,7 +5,6 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { PT_Sans, Source_Code_Pro } from 'next/font/google';
 import { Suspense } from 'react';
-import dynamic from 'next/dynamic';
 
 // Import custom components.
 import { ConditionalHeader } from '@/components/common/ConditionalHeader';
@@ -13,9 +12,7 @@ import { GlobalLoadingSpinner } from '@/components/common/GlobalLoadingSpinner';
 import { Providers } from './providers';
 import { Footer } from '@/components/common/Footer';
 import { Toaster } from '@/components/ui/toaster';
-
-// Dynamically import components to reduce the initial bundle size.
-const PostPaymentHandler = dynamic(() => import('@/components/payments/PostPaymentHandler').then(mod => mod.PostPaymentHandler), { loading: () => null });
+import { PaymentProcessor } from '@/components/payments/PaymentProcessor';
 
 // Initialize application fonts and expose them as CSS variables.
 const ptSans = PT_Sans({ subsets: ['latin'], style: ['normal', 'italic'], weight: ['400', '700'], variable: '--font-pt-sans' });
@@ -67,12 +64,13 @@ export default async function RootLayout({
         <link rel="preconnect" href="https://auth.linguil.app" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://www.googletagmanager.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://firebase.googleapis.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://apis.google.com" crossOrigin="anonymous" />
       </head>
       {/* Apply fonts and layout styles to the body. */}
       <body className={`${ptSans.variable} ${sourceCodePro.variable} font-body antialiased flex flex-col min-h-screen overflow-x-hidden`}>
         {/* Wrap the application with context providers. */}
         <Providers>
-          <PostPaymentHandler />
+          <PaymentProcessor />
           <ConditionalHeader />
           {/* Define the main content area with a fallback loading spinner. */}
           <main className="w-full max-w-2xl mx-auto flex flex-col justify-start flex-grow">
