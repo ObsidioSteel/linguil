@@ -109,9 +109,9 @@ export const createUserAccount = onCall({ region: "us-central1", secrets: ["STRI
     const error = err as { code?: string; message?: string };
 
     // Handle specific Firebase Authentication errors.
-    if (error.code && error.code.startsWith('auth/')) {
-        const message = error.message || "An unexpected authentication error occurred.";
-        throw new HttpsError("failed-precondition", message, { code: error.code });
+    if (error.code && error.code.startsWith("auth/")) {
+      const message = error.message || "An unexpected authentication error occurred.";
+      throw new HttpsError("failed-precondition", message, { code: error.code });
     }
 
     // Handle HttpsError instances.

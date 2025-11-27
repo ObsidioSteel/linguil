@@ -5,7 +5,8 @@ import dynamic from 'next/dynamic';
 
 // Dynamically import the PostPaymentHandler when the 'session_id' URL parameter is present.
 const PostPaymentHandler = dynamic(() =>
-  import('@/components/payments/PostPaymentHandler').then(mod => mod.PostPaymentHandler)
+  import('@/components/payments/PostPaymentHandler').then(mod => mod.PostPaymentHandler),
+  { ssr: false }
 );
 
 export function PaymentProcessor() {

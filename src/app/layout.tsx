@@ -22,6 +22,9 @@ const sourceCodePro = Source_Code_Pro({ subsets: ['latin'], weight: ['400', '600
 export const metadata: Metadata = {
   title: 'linguil',
   description: 'The daily language guessing game',
+  icons: {
+    icon: '/icon.png',
+  },
 };
 
 // Define the root layout component for the entire application.
@@ -70,7 +73,6 @@ export default async function RootLayout({
       <body className={`${ptSans.variable} ${sourceCodePro.variable} font-body antialiased flex flex-col min-h-screen overflow-x-hidden`}>
         {/* Wrap the application with context providers. */}
         <Providers>
-          <PaymentProcessor />
           <ConditionalHeader />
           {/* Define the main content area with a fallback loading spinner. */}
           <main className="w-full max-w-2xl mx-auto flex flex-col justify-start flex-grow">
@@ -80,6 +82,9 @@ export default async function RootLayout({
           </main>
           <Footer />
           <Toaster />
+          <Suspense fallback={null}>
+            <PaymentProcessor />
+          </Suspense>
         </Providers>
       </body>
     </html>

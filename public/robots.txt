@@ -1,6 +1,4 @@
 User-agent: *
-Allow: /
-Allow: /_next/static/
 Disallow: /data/
 
 Sitemap: https://linguil.app/sitemap.xml
