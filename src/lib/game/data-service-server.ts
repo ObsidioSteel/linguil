@@ -44,6 +44,6 @@ export const getDailyWordData = cache(
       return null; // Return null on any error.
     }
   },
-  ['daily-word'],
+  ['daily-word-data'],
   { revalidate: 86400 } // Revalidate the cache once per day.
 );

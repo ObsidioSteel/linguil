@@ -70,7 +70,7 @@ export const beforeusercreated = beforeUserCreated({ region: "us-central1", secr
 });
 
 // Cloud Function to create a new user account.
-export const createUserAccount = onCall({ region: "us-central1", secrets: ["STRIPE_SECRET_KEY"], memory: "256MiB", cors: true }, async (request) => {
+export const createUserAccount = onCall({ region: "us-central1", secrets: ["STRIPE_SECRET_KEY"], memory: "256MiB", cors: [ "https://www.linguil.app", "https://linguil.web.app", "https://linguil.firebaseapp.com", "https://9000-firebase-studio-1755218936202.cluster-fbfjltn375c6wqxlhoehbz44sk.cloudworkstations.dev" ] }, async (request) => {
   // Destructure required parameters from the request data.
   const { name, email, password } = request.data;
 
@@ -180,7 +180,7 @@ export const createCheckoutSession = onCall({
   region: "us-central1",
   secrets: ["STRIPE_SECRET_KEY"],
   memory: "256MiB",
-  cors: true
+  cors: [ "https://www.linguil.app", "https://linguil.web.app", "https://linguil.firebaseapp.com", "https://9000-firebase-studio-1755218936202.cluster-fbfjltn375c6wqxlhoehbz44sk.cloudworkstations.dev" ]
 }, async (request) => {
   // Initialize Stripe.
   const stripe = getStripe();
