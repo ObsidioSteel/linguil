@@ -58,7 +58,7 @@ export default function HomePage() {
         {/* GitHub link. */}
         <div className="fixed bottom-20 right-3 z-1 transform-gpu">
           <Button asChild variant="ghost" className="h-7 w-min text-primary-foreground bg-muted hover:bg-muted/90 hover:text-primary-foreground/90">
-            <Link href="https://github.com/Papuang/linguil"
+            <Link href="https://github.com/linguil/linguil"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Contribute on GitHub">
