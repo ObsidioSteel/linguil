@@ -39,6 +39,7 @@ const cspPolicies = {
     'https://*.google.com',
     'https://ssl.gstatic.com',
     'https://*.linguil.app',
+    'https://*.cloudworkstations.dev',
   ],
   'img-src': [
     "'self'",
