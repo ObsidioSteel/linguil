@@ -9,6 +9,7 @@ export default [
   // Global ignores for all configurations.
   {
     ignores: [
+      ".firebase/",
       "node_modules/",
       ".next/",
       "out/",

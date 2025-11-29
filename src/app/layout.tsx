@@ -20,10 +20,11 @@ const sourceCodePro = Source_Code_Pro({ subsets: ['latin'], weight: ['400', '600
 
 // Define metadata for the application's head tag.
 export const metadata: Metadata = {
+  metadataBase: new URL('https://linguil.app'),
   title: 'linguil',
   description: 'The daily language guessing game',
   icons: {
-    icon: '/icon.png',
+    icon: '/icon.png?v=1',
   },
 };
 
