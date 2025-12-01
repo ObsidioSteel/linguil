@@ -33,10 +33,10 @@ headers:
 
 runConfig:
   # Specifies the number of vCPU cores per server instance.
-  cpu: 2
+  cpu: 1
 
   # Sets the memory allocation in MiB for each server instance.
-  memoryMiB: 512
+  memoryMiB: 256
 
   # Defines the maximum concurrent requests per instance.
   concurrency: 80
