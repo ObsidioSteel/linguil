@@ -8,7 +8,7 @@
 
 - *Next.js*-based web application
 - **Frontend:** *Tailwind CSS* (styling), *Radix* (UI) & *Recharts* (custom user leaderboards)
-- **Backend:** *Google Cloud* (compute), *Firebase* (authentication, storage, hosting, performance monitoring, analytics) & *Stripe* (linguil+ payments)
+- **Backend:** *Google Cloud* (compute, TTS), *Firebase* (authentication, storage, hosting, performance monitoring, analytics) & *Stripe* (linguil+ payments)
 
 ## Guide: Add a new language
 
