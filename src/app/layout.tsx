@@ -24,7 +24,13 @@ export const metadata: Metadata = {
   title: 'linguil',
   description: 'The daily language guessing game',
   icons: {
-    icon: '/icon.png?v=1',
+    icon: [
+      { url: '/icon.png?v=1', type: 'image/png' },
+      { url: '/icon-192x192.png?v=1', type: 'image/png', sizes: '192x192' },
+      { url: '/icon-512x512.png?v=1', type: 'image/png', sizes: '512x512' },
+    ],
+    shortcut: '/favicon.ico?v=1',
+    apple: '/apple-icon.png?v=1',
   },
 };
 
