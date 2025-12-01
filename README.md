@@ -30,21 +30,21 @@
 
 </div>
 
-6. Record the approx. total number of global speakers (L1 + L2); the country (and state/province if the country is large) with the most speakers; and the approx. total number of speakers in that country (L1 + L2) at the bottom of ```public/data/LangStats.csv``` in the correct style:  
+5. Record (i) the approx. total number of global speakers (L1 + L2); (ii) the country (and state/province(s) if the country is large) with the most speakers; and (iii) the approx. total number of speakers in that country (L1 + L2) at the bottom of ```public/data/LangStats.csv``` in the correct style:  
 <div align=center>
   
   ```[Language],~[# GlobalSpeakers],[Country (State / Province),~[# CountrySpeakers]```.
 
 </div>
 
-7. Record each word in the 100-word Swadesh list both in the original native script (if available) and transliterated into the Latin script (letters + diacritics only) at the end of each row of ```public/data/MultiLangSwadesh.csv``` in the correct style:  
+6. Record each word in the 100-word Swadesh list both in (i) the original native script (if available, or a standard alternative script if the dominant script is Latin-based) and (ii) transliterated into the Latin script (allowing novel letters, punctuation, and diacritics, but not tone numbers) at the end of each row of ```public/data/MultiLangSwadesh.csv``` in the correct style:  
 <div align=center>
   
-  ```,[NativeScript] ([LatinScript])```.
+  ```,[Native/AlternativeScript] ([LatinScript])``` or ```,[LatinScript]``` (if no alternative scripts are available).
 
 </div>
 
-8. Submit your changes to the [```linguil```](https://github.com/linguil/linguil) repo for approval.
+7. Submit your changes to the [```linguil```](https://github.com/linguil/linguil) repo for approval.
 
 ___
 
