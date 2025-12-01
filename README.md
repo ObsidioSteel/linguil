@@ -12,20 +12,18 @@
 
 ## Guide: Add a new language
 
-1. Check existing supported languages in ```public/data/MultiLangFamilies.csv```.
+1. Check the [language wishlist](http://github.com/linguil/linguil/wiki/Language-Wishlist) for currently supported and unsupported languages (supported languages are ~~crossed out~~ as well as listed in ```public/data/MultiLangFamilies.csv```).
 
-2. Check the new [language wishlist](http://github.com/linguil/linguil/wiki/Language-Wishlist).
+2. Choose a language to add (languages need not be on the wishlist, but must be well-attested in academic literature; have some scholarly consensus around their top-level language family; and currently have speakers—no creoles, conlangs or dead languages).
 
-3. Choose a language to add—languages must be well-attested in academic literature and have some scholarly consensus around their top-level language family (no creoles, conlangs or languages without speakers).
-
-4. Record its top-level language family at the bottom of ```public/data/MultiLangFamilies.csv``` in the correct style:  
+3. Record its top-level language family at the bottom of ```public/data/MultiLangFamilies.csv``` in the correct style:  
 <div align=center>
   
   ```[Language],[Family]```.
   
 </div>
 
-5. Choose the most appropriate Google Text-to-Speech (TTS) voice name from [this list](http://docs.cloud.google.com/text-to-speech/docs/list-voices-and-types) (the most similar language if yours is unavailable) and record it at the bottom of ```public/data/LanguageCodes.csv``` in the correct style (note the language code must match the TTS name code):  
+4. Choose the most appropriate Google Text-to-Speech (TTS) voice name from [this list](http://docs.cloud.google.com/text-to-speech/docs/list-voices-and-types) (the most similar language if yours is unavailable) and record it at the bottom of ```public/data/LanguageCodes.csv``` in the correct style (note the language code must match the TTS name code):  
 <div align=center>
   
   ```[Language],[LanguageCode],[TTSVoiceName]```.
@@ -39,7 +37,7 @@
 
 </div>
 
-7. Record each word in the 100-word Swadesh list in both the original native script (if available) and transliterated into the Latin script (letters + diacritics only) at the end of each row of ```public/data/MultiLangSwadesh.csv``` in the correct style:  
+7. Record each word in the 100-word Swadesh list both in the original native script (if available) and transliterated into the Latin script (letters + diacritics only) at the end of each row of ```public/data/MultiLangSwadesh.csv``` in the correct style:  
 <div align=center>
   
   ```,[NativeScript] ([LatinScript])```.
@@ -47,6 +45,7 @@
 </div>
 
 8. Submit your changes to the [```linguil```](https://github.com/linguil/linguil) repo for approval.
+
 ___
 
 
