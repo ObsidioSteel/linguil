@@ -36,7 +36,7 @@ runConfig:
   cpu: 1
 
   # Sets the memory allocation in MiB for each server instance.
-  memoryMiB: 256
+  memoryMiB: 512
 
   # Defines the maximum concurrent requests per instance.
   concurrency: 80
