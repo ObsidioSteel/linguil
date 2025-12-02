@@ -255,9 +255,9 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
     if (data.audioUrl) {
       // Use pre-recorded audio if available.
       const player = new Audio(data.audioUrl);
-      player.oncanplaythrough = () => dispatch({ type: 'SET_AUDIO_READY', payload: true });
-      player.onerror = () => {};
       dispatch({ type: 'SET_AUDIO_PLAYER', payload: player });
+      dispatch({ type: 'SET_AUDIO_READY', payload: true });
+      player.onerror = () => {};
     } else {
       // Fallback to text-to-speech.
       const handleVoicesChanged = () => {

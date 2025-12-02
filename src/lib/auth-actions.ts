@@ -3,6 +3,7 @@
 import {
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
   signOut,
@@ -52,7 +53,7 @@ export const getAuthErrorMessage = (error: unknown): string => {
   return message;
 };
 
-// Initiates the Google sign-in process via a popup.
+// Initiates the Google sign-in process.
 export const signInWithGoogle = async (): Promise<void> => {
   const auth = await getFirebaseAuth();
   const provider = new GoogleAuthProvider();
@@ -60,7 +61,12 @@ export const signInWithGoogle = async (): Promise<void> => {
   provider.addScope('email');
   provider.setCustomParameters({ prompt: 'select_account' });
   try {
-    await signInWithPopup(auth, provider);
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
+      await signInWithRedirect(auth, provider);
+    } else {
+      await signInWithPopup(auth, provider);
+    }
   } catch (error) {
     console.error("Detailed sign-in error:", error);
     const errorCode = (error as { code?: string }).code;
