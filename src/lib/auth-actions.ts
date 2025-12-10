@@ -61,12 +61,7 @@ export const signInWithGoogle = async (): Promise<void> => {
   provider.addScope('email');
   provider.setCustomParameters({ prompt: 'select_account' });
   try {
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    if (isMobile) {
-      await signInWithRedirect(auth, provider);
-    } else {
-      await signInWithPopup(auth, provider);
-    }
+    await signInWithRedirect(auth, provider);
   } catch (error) {
     console.error("Detailed sign-in error:", error);
     const errorCode = (error as { code?: string }).code;
