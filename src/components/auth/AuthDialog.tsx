@@ -88,7 +88,7 @@ const AuthDialog = memo(({ open, onOpenChange }: AuthDialogProps) => {
         return <PasswordResetForm onBack={() => setView('selector')} />;
       case 'selector':
       default:
-        return <AuthMethodSelector onSelectEmail={() => setView('email')} />;
+        return <AuthMethodSelector onSelectEmail={() => requestAnimationFrame(() => setView('email'))} />;
     }
   };
 

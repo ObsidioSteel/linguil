@@ -9,7 +9,7 @@ import {
   useCallback,
 } from 'react';
 import type { ReactNode, ComponentType } from 'react';
-import { onIdTokenChanged, type User } from 'firebase/auth';
+import { onIdTokenChanged, type User, getRedirectResult } from 'firebase/auth';
 import { doc, onSnapshot, type Firestore } from 'firebase/firestore';
 import type { AuthDialogProps } from '@/components/auth/AuthDialog';
 import Cookies from 'js-cookie';
@@ -107,6 +107,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const initializeAuth = async () => {
       try {
         const auth = await getFirebaseAuth();
+        // Handle the redirect result from Google Sign-In.
+        await getRedirectResult(auth).catch(handleAuthError);
         // Listen for changes in the user's sign-in state.
         unsubscribe = onIdTokenChanged(auth, async (currentUser) => {
           setLoading(true);
@@ -162,7 +164,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         unsubscribe();
       }
     };
-  }, [logEvent]);
+  }, [logEvent, handleAuthError]);
 
   // Listens for real-time changes to the user's payment status in Firestore.
   useEffect(() => {
