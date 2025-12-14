@@ -87,8 +87,6 @@ export const createUserAccount = onCall({ region: "us-central1", secrets: ["STRI
       displayName: name,
     });
 
-    // Set up the new user's database records.
-    await setupNewUser(userRecord);
 
     // Generate a custom token for the client to use for a reliable sign-in.
     const customToken = await admin.auth().createCustomToken(userRecord.uid);

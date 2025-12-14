@@ -9,7 +9,7 @@ import {
   useCallback,
 } from 'react';
 import type { ReactNode, ComponentType } from 'react';
-import { onIdTokenChanged, type User, getRedirectResult } from 'firebase/auth';
+import { onIdTokenChanged, type User, getRedirectResult, GoogleAuthProvider } from 'firebase/auth';
 import { doc, onSnapshot, type Firestore } from 'firebase/firestore';
 import type { AuthDialogProps } from '@/components/auth/AuthDialog';
 import Cookies from 'js-cookie';
@@ -108,14 +108,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const auth = await getFirebaseAuth();
         // Handle the redirect result from Google Sign-In.
-        await getRedirectResult(auth).catch(handleAuthError);
+        try {
+            const result = await getRedirectResult(auth);
+            if (result && result.providerId === GoogleAuthProvider.PROVIDER_ID) {
+                const isNewUser = new Date(result.user.metadata.creationTime!).getTime() === new Date(result.user.metadata.lastSignInTime!).getTime();
+                logEvent(isNewUser ? 'sign_up' : 'login', { method: 'google' });
+            }
+        } catch(error) {
+            handleAuthError(error);
+        }
+
         // Listen for changes in the user's sign-in state.
         unsubscribe = onIdTokenChanged(auth, async (currentUser) => {
           setLoading(true);
           if (currentUser) {
             // User is signed in.
             const idTokenResult = await currentUser.getIdTokenResult();
-            const isNewUser = new Date(currentUser.metadata.creationTime!).getTime() === new Date(currentUser.metadata.lastSignInTime!).getTime();
             const paidStatus = idTokenResult.claims.hasPaid === true;
 
             // Update state with user info.
@@ -129,12 +137,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 // Set user properties for analytics.
                 setUserId(analytics, currentUser.uid);
                 setUserProperties(analytics, { has_paid: paidStatus });
-
-                if (isNewUser) {
-                  logEvent('sign_up', { method: 'email' });
-                } else {
-                  logEvent('login', { method: 'email' });
-                }
               }
             } catch {
               // Analytics errors are not critical to the user, so we can ignore them.
@@ -219,11 +221,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { signInWithGoogle: signIn } = await import('@/lib/auth-actions');
       await signIn();
-      logEvent('login', { method: 'google' });
     } catch (error) {
       handleAuthError(error);
     }
-  }, [clearAuthError, handleAuthError, logEvent]);
+  }, [clearAuthError, handleAuthError]);
 
   // Handles email and password sign-in.
   const signInWithEmail = useCallback(
@@ -236,13 +237,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const { handleSignInWithEmail } = await import('@/lib/auth-actions');
         await handleSignInWithEmail(email, password);
+        logEvent('login', { method: 'email' });
         return true;
       } catch (error) {
         handleAuthError(error);
         return false;
       }
     },
-    [clearAuthError, handleAuthError]
+    [clearAuthError, handleAuthError, logEvent]
   );
 
   // Handles new user sign-up.
@@ -256,13 +258,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const { handleSignUpWithEmail } = await import('@/lib/auth-actions');
         await handleSignUpWithEmail(name, email, password);
+        logEvent('sign_up', { method: 'email' });
         return true;
       } catch (error) {
         handleAuthError(error);
         return false;
       }
     },
-    [clearAuthError, handleAuthError]
+    [clearAuthError, handleAuthError, logEvent]
   );
 
   // Handles password reset requests.
