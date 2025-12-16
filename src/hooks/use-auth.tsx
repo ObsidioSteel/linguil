@@ -107,11 +107,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const initializeAuth = async () => {
       try {
         const auth = await getFirebaseAuth();
+        
         // Handle the redirect result from Google Sign-In.
         try {
             const result = await getRedirectResult(auth);
             if (result && result.providerId === GoogleAuthProvider.PROVIDER_ID) {
-                const isNewUser = new Date(result.user.metadata.creationTime!).getTime() === new Date(result.user.metadata.lastSignInTime!).getTime();
+                const user = result.user;
+                const idTokenResult = await user.getIdTokenResult();
+                const paidStatus = idTokenResult.claims.hasPaid === true;
+                setUser(user);
+                setHasPaid(paidStatus);
+                Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1 });
+                const isNewUser = new Date(user.metadata.creationTime!).getTime() === new Date(user.metadata.lastSignInTime!).getTime();
                 logEvent(isNewUser ? 'sign_up' : 'login', { method: 'google' });
             }
         } catch(error) {
@@ -120,7 +127,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // Listen for changes in the user's sign-in state.
         unsubscribe = onIdTokenChanged(auth, async (currentUser) => {
-          setLoading(true);
           if (currentUser) {
             // User is signed in.
             const idTokenResult = await currentUser.getIdTokenResult();

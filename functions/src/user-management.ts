@@ -1,11 +1,10 @@
 import * as admin from "firebase-admin";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
-import { beforeUserCreated, AuthUserRecord } from "firebase-functions/v2/identity";
 import { db } from "./init";
 import { getStripe } from "./stripe";
 
 // Internal function to set up a new user's documents and Stripe customer.
-const setupNewUser = async (user: AuthUserRecord | admin.auth.UserRecord) => {
+const setupNewUser = async (user: admin.auth.UserRecord) => {
   const stripe = getStripe();
   try {
     // Create a new customer in Stripe.
@@ -48,15 +47,6 @@ const setupNewUser = async (user: AuthUserRecord | admin.auth.UserRecord) => {
   }
 };
 
-// Handle creation of user records before the user is saved to Firebase Auth.
-export const beforeusercreated = beforeUserCreated({ region: "us-central1", secrets: ["STRIPE_SECRET_KEY"] }, async (event) => {
-  const user = event.data;
-  if (!user) {
-    console.error("User data was not available in beforeUserCreated event.");
-    throw new HttpsError("internal", "User data is missing in the creation event.");
-  }
-  await setupNewUser(user);
-});
 
 // Cloud Function to create a new user account.
 export const createUserAccount = onCall({ region: "us-central1", secrets: ["STRIPE_SECRET_KEY"], memory: "256MiB", cors: [ "https://www.linguil.app", "https://linguil.web.app", "https://linguil.firebaseapp.com", /^https:\/\/.*\.cloudworkstations\.dev$/ ] }, async (request) => {
@@ -67,6 +57,8 @@ export const createUserAccount = onCall({ region: "us-central1", secrets: ["STRI
   if (!name || !email || !password) {
     throw new HttpsError("invalid-argument", "Missing required parameters: name, email, or password");
   }
+  
+  let userRecord: admin.auth.UserRecord | null = null;
 
   try {
     // Check if a user with the given email already exists.
@@ -81,12 +73,14 @@ export const createUserAccount = onCall({ region: "us-central1", secrets: ["STRI
     }
 
     // Create a new user in Firebase Authentication.
-    const userRecord = await admin.auth().createUser({
+    userRecord = await admin.auth().createUser({
       email: email,
       password: password,
       displayName: name,
     });
-
+    
+    // Set up the user's data in Stripe and Firestore.
+    await setupNewUser(userRecord);
 
     // Generate a custom token for the client to use for a reliable sign-in.
     const customToken = await admin.auth().createCustomToken(userRecord.uid);
@@ -95,6 +89,14 @@ export const createUserAccount = onCall({ region: "us-central1", secrets: ["STRI
     return { token: customToken };
 
   } catch (err: unknown) {
+    // Clean up user record if user creation or setup fails.
+    if (userRecord) {
+        try {
+            await admin.auth().deleteUser(userRecord.uid);
+        } catch (cleanupError) {
+            console.error(`CRITICAL: Failed to clean up user ${userRecord.uid} after a failed signup.`, cleanupError);
+        }
+    }
     // Handle any errors that occur during the process.
     const error = err as { code?: string; message?: string };
 
