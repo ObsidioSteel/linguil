@@ -9,7 +9,7 @@ import {
   useCallback,
 } from 'react';
 import type { ReactNode, ComponentType } from 'react';
-import { onIdTokenChanged, type User, getRedirectResult, GoogleAuthProvider } from 'firebase/auth';
+import { onIdTokenChanged, type User, getAdditionalUserInfo } from 'firebase/auth';
 import { doc, onSnapshot, type Firestore } from 'firebase/firestore';
 import type { AuthDialogProps } from '@/components/auth/AuthDialog';
 import Cookies from 'js-cookie';
@@ -107,23 +107,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const initializeAuth = async () => {
       try {
         const auth = await getFirebaseAuth();
-        
-        // Handle the redirect result from Google Sign-In.
-        try {
-            const result = await getRedirectResult(auth);
-            if (result && result.providerId === GoogleAuthProvider.PROVIDER_ID) {
-                const user = result.user;
-                const idTokenResult = await user.getIdTokenResult();
-                const paidStatus = idTokenResult.claims.hasPaid === true;
-                setUser(user);
-                setHasPaid(paidStatus);
-                Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1 });
-                const isNewUser = new Date(user.metadata.creationTime!).getTime() === new Date(user.metadata.lastSignInTime!).getTime();
-                logEvent(isNewUser ? 'sign_up' : 'login', { method: 'google' });
-            }
-        } catch(error) {
-            handleAuthError(error);
-        }
 
         // Listen for changes in the user's sign-in state.
         unsubscribe = onIdTokenChanged(auth, async (currentUser) => {
@@ -226,11 +209,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     clearAuthError();
     try {
       const { signInWithGoogle: signIn } = await import('@/lib/auth-actions');
-      await signIn();
+      const userCredential = await signIn();
+      const user = userCredential.user;
+      const idTokenResult = await user.getIdTokenResult();
+      const paidStatus = idTokenResult.claims.hasPaid === true;
+      setUser(user);
+      setHasPaid(paidStatus);
+      Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1 });
+      const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser ?? false;
+      logEvent(isNewUser ? 'sign_up' : 'login', { method: 'google' });
+      setIsAuthDialogOpen(false);
     } catch (error) {
       handleAuthError(error);
     }
-  }, [clearAuthError, handleAuthError]);
+  }, [clearAuthError, handleAuthError, logEvent]);
 
   // Handles email and password sign-in.
   const signInWithEmail = useCallback(
@@ -242,8 +234,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       try {
         const { handleSignInWithEmail } = await import('@/lib/auth-actions');
-        await handleSignInWithEmail(email, password);
+        const userCredential = await handleSignInWithEmail(email, password);
+        const user = userCredential.user;
+        const idTokenResult = await user.getIdTokenResult();
+        const paidStatus = idTokenResult.claims.hasPaid === true;
+        setUser(user);
+        setHasPaid(paidStatus);
+        Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1 });
         logEvent('login', { method: 'email' });
+        setIsAuthDialogOpen(false);
         return true;
       } catch (error) {
         handleAuthError(error);
@@ -263,8 +262,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       try {
         const { handleSignUpWithEmail } = await import('@/lib/auth-actions');
-        await handleSignUpWithEmail(name, email, password);
+        const userCredential = await handleSignUpWithEmail(name, email, password);
+        const user = userCredential.user;
+        const idTokenResult = await user.getIdTokenResult();
+        const paidStatus = idTokenResult.claims.hasPaid === true;
+        setUser(user);
+        setHasPaid(paidStatus);
+        Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1 });
         logEvent('sign_up', { method: 'email' });
+        setIsAuthDialogOpen(false);
         return true;
       } catch (error) {
         handleAuthError(error);

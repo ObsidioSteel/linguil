@@ -2,11 +2,12 @@
 
 import {
   GoogleAuthProvider,
-  signInWithRedirect,
+  signInWithPopup,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
   signOut,
   signInWithCustomToken,
+  type UserCredential,
 } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
 import { getFirebaseAuth, getFirebaseFunctions } from '@/lib/firebase/firebase';
@@ -39,6 +40,7 @@ export const getAuthErrorMessage = (error: unknown): string => {
       case 'auth/popup-blocked':
         message = 'Sign-in popup blocked—allow popups for linguil.app';
         break;
+      case 'auth/popup-closed-by-user':
       case 'auth/user-cancelled':
         message = 'Sign-in process was cancelled';
         break;
@@ -53,14 +55,14 @@ export const getAuthErrorMessage = (error: unknown): string => {
 };
 
 // Initiates the Google sign-in process.
-export const signInWithGoogle = async (): Promise<void> => {
+export const signInWithGoogle = async (): Promise<UserCredential> => {
   const auth = await getFirebaseAuth();
   const provider = new GoogleAuthProvider();
   provider.addScope('profile');
   provider.addScope('email');
   provider.setCustomParameters({ prompt: 'select_account' });
   try {
-    await signInWithRedirect(auth, provider);
+    return await signInWithPopup(auth, provider);
   } catch (error) {
     console.error("Detailed sign-in error:", error);
     const errorCode = (error as { code?: string }).code;
@@ -70,13 +72,13 @@ export const signInWithGoogle = async (): Promise<void> => {
 };
 
 // Authenticates a user with email and password.
-export const handleSignInWithEmail = async (email: string, password: string): Promise<void> => {
+export const handleSignInWithEmail = async (email: string, password: string): Promise<UserCredential> => {
   const auth = await getFirebaseAuth();
-  await signInWithEmailAndPassword(auth, email, password);
+  return await signInWithEmailAndPassword(auth, email, password);
 };
 
 // Creates a new user account via a cloud function and signs them in.
-export const handleSignUpWithEmail = async (name: string, email: string, password: string): Promise<void> => {
+export const handleSignUpWithEmail = async (name: string, email: string, password: string): Promise<UserCredential> => {
   const functions = await getFirebaseFunctions();
   const createUserAccount = httpsCallable<{ name: string; email: string; password: string }, { token: string }>(functions, 'createUserAccount');
 
@@ -84,7 +86,7 @@ export const handleSignUpWithEmail = async (name: string, email: string, passwor
   const token = result.data.token;
 
   const auth = await getFirebaseAuth();
-  await signInWithCustomToken(auth, token);
+  return await signInWithCustomToken(auth, token);
 };
 
 // Sends a password reset email to the specified user.
