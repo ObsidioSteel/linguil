@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     return new NextResponse(JSON.stringify(data), { status: 200 });
 
-  } catch (error) {
+  } catch {
     return new NextResponse(JSON.stringify({ error: 'Proxy error' }), { status: 500 });
   }
 }
