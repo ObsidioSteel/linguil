@@ -1,5 +1,6 @@
 import * as admin from "firebase-admin";
-import { HttpsError, onCall } from "firebase-functions/v2/https";
+import * as functions from "firebase-functions/v1";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { db } from "./init";
 import { getStripe } from "./stripe";
 
@@ -43,10 +44,11 @@ const setupNewUser = async (user: admin.auth.UserRecord) => {
 
   } catch (err) {
     console.error(`Error in setupNewUser for UID: ${user.uid}`, err);
-    throw new HttpsError("internal", "Failed to set up user account due to an internal error.");
   }
 };
 
+// Background trigger (v1) to set up a new user.
+export const onUserCreate = functions.region("us-central1").runWith({ secrets: ["STRIPE_SECRET_KEY"] }).auth.user().onCreate(setupNewUser);
 
 // Cloud Function to create a new user account.
 export const createUserAccount = onCall({ region: "us-central1", secrets: ["STRIPE_SECRET_KEY"], memory: "256MiB", cors: [ "https://www.linguil.app", "https://linguil.web.app", "https://linguil.firebaseapp.com", /^https:\/\/.*\.cloudworkstations\.dev$/ ] }, async (request) => {

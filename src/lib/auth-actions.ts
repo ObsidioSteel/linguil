@@ -4,13 +4,13 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
   sendPasswordResetEmail,
   signOut,
-  signInWithCustomToken,
   type UserCredential,
 } from 'firebase/auth';
-import { httpsCallable } from 'firebase/functions';
-import { getFirebaseAuth, getFirebaseFunctions } from '@/lib/firebase/firebase';
+import { getFirebaseAuth } from '@/lib/firebase/firebase';
 
 // Maps Firebase auth error codes to user-friendly messages.
 export const getAuthErrorMessage = (error: unknown): string => {
@@ -65,8 +65,6 @@ export const signInWithGoogle = async (): Promise<UserCredential> => {
     return await signInWithPopup(auth, provider);
   } catch (error) {
     console.error("Detailed sign-in error:", error);
-    const errorCode = (error as { code?: string }).code;
-    console.error("Firebase Auth Error Code:", errorCode);
     throw error;
   }
 };
@@ -77,16 +75,15 @@ export const handleSignInWithEmail = async (email: string, password: string): Pr
   return await signInWithEmailAndPassword(auth, email, password);
 };
 
-// Creates a new user account via a cloud function and signs them in.
+// Creates a new user with email/password, updates their profile with the provided name, and signs them in.
 export const handleSignUpWithEmail = async (name: string, email: string, password: string): Promise<UserCredential> => {
-  const functions = await getFirebaseFunctions();
-  const createUserAccount = httpsCallable<{ name: string; email: string; password: string }, { token: string }>(functions, 'createUserAccount');
-
-  const result = await createUserAccount({ name, email, password });
-  const token = result.data.token;
-
   const auth = await getFirebaseAuth();
-  return await signInWithCustomToken(auth, token);
+  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+  if (userCredential.user) {
+    await updateProfile(userCredential.user, { displayName: name });
+  }
+
+  return userCredential;
 };
 
 // Sends a password reset email to the specified user.

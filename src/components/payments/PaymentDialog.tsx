@@ -93,7 +93,7 @@ export const PaymentDialog = ({ open, onOpenChange }: PaymentDialogProps) => {
             </VisuallyHidden>
           </DialogHeader>
           {/* Dialog main content. */}
-          <p className="mb-4">Unlimited, offline games</p>
+          <p className="mb-2 mt-2">Unlimited, offline games</p>
           <p className="text-sm text-muted-foreground mb-4 italic">
             Note: Offline games do not affect leaderboards.
           </p>
