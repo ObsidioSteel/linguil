@@ -70,11 +70,14 @@ export const usePayments = () => {
       
       const cancelUrl = window.location.origin; // Set the cancellation URL.
 
+      const idToken = await user.getIdToken();
+
       // Call the proxy API route with the necessary parameters (to fix Safari cross-origin issues).
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
         },
         body: JSON.stringify({
           priceId,
@@ -90,7 +93,7 @@ export const usePayments = () => {
       }
       
       // Passes the response from the Firebase checkout function (which returns the date and URL).
-      const url = data.data.url;
+      const url = data.url;
       if (!url) {
         throw new Error("Failed to retrieve checkout session URL");
       }

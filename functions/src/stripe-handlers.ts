@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
+import { onRequest } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import { db } from "./init";
 import { getStripe } from "./stripe";
@@ -8,43 +8,52 @@ import Stripe from "stripe";
 // Define a secret for the Stripe webhook.
 const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 
-// Callable Cloud Function to create a Stripe Checkout session for a payment.
-export const createCheckoutSession = onCall({
+// HTTP-triggered function to create a Stripe Checkout session.
+export const createCheckoutSession = onRequest({
   region: "us-central1",
   secrets: ["STRIPE_SECRET_KEY"],
   memory: "256MiB",
   cors: [ "https://www.linguil.app", "https://linguil.web.app", "https://linguil.firebaseapp.com", /^https:\/\/.*\.cloudworkstations\.dev$/ ]
-}, async (request) => {
+}, async (req, res) => {
   // Initialize Stripe.
   const stripe = getStripe();
 
-  // Ensure the user is authenticated.
-  if (!request.auth) {
-    throw new HttpsError("unauthenticated", "You must be logged in to make a purchase");
-  }
-
-  // Get required parameters from the request.
-  const { priceId, successUrl, cancelUrl } = request.data;
-  if (!priceId || !successUrl || !cancelUrl) {
-    throw new HttpsError("invalid-argument", "Missing required parameters");
+  // Extract the Firebase ID token from the Authorization header.
+  const idToken = req.headers.authorization?.split("Bearer ")[1];
+  if (!idToken) {
+    res.status(401).send("Unauthorized");
+    return;
   }
 
   try {
+    // Verify the ID token to get the user's UID and email.
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const uid = decodedToken.uid;
+    const email = decodedToken.email;
+
+    // Get required parameters from the request body.
+    const { priceId, successUrl, cancelUrl } = req.body;
+    if (!priceId || !successUrl || !cancelUrl) {
+      res.status(400).send("Missing required parameters");
+      return;
+    }
+
     // Get the user's document from Firestore to find their Stripe Customer ID.
-    const userRef = db.collection("users").doc(request.auth.uid);
+    const userRef = db.collection("users").doc(uid);
     const userDoc = await userRef.get();
     let customerId = userDoc.data()?.stripeCustomerId;
 
     // If the user doesn't have a Stripe Customer ID, create one.
     if (!customerId) {
-      if (!request.auth.token.email) {
-        throw new HttpsError("failed-precondition", "User email is missing, cannot create Stripe customer");
+      if (!email) {
+        res.status(400).send("User email is missing, cannot create Stripe customer");
+        return;
       }
 
       // Create a new Stripe customer.
       const customer = await stripe.customers.create({
-        email: request.auth.token.email,
-        metadata: { firebaseUID: request.auth.uid },
+        email: email,
+        metadata: { firebaseUID: uid },
       });
       customerId = customer.id;
 
@@ -60,17 +69,17 @@ export const createCheckoutSession = onCall({
       cancel_url: cancelUrl,
       customer: customerId,
       metadata: {
-        firebaseUID: request.auth.uid,
+        firebaseUID: uid,
       },
     });
 
     // Return the session URL to the client.
-    return { url: session.url };
+    res.json({ url: session.url });
 
   } catch (err) {
     // Handle any errors.
-    const error = err as { message: string }; 
-    throw new HttpsError("internal", error.message);
+    console.error("Error creating checkout session:", err);
+    res.status(500).send("Internal Server Error");
   }
 });
 

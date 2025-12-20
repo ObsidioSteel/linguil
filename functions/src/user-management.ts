@@ -1,75 +1,59 @@
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions/v1";
-import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { onRequest } from "firebase-functions/v2/https";
 import { db } from "./init";
 import { getStripe } from "./stripe";
 
 // Internal function to set up a new user's documents and Stripe customer.
 const setupNewUser = async (user: admin.auth.UserRecord) => {
-  const userPublicDocRef = db.collection("users_public").doc(user.uid);
-  const userDocRef = db.collection("users").doc(user.uid);
+  // Get a new write batch
+  const batch = db.batch();
 
-  // Use a transaction to atomically set up the user.
-  await db.runTransaction(async (transaction) => {
-    const userPublicDoc = await transaction.get(userPublicDocRef);
-    const userDoc = await transaction.get(userDocRef);
-
-    // Idempotently create the private user document and Stripe customer.
-    if (!userDoc.exists) {
-      console.log(`Creating new private user document for UID: ${user.uid}.`);
-      const stripe = getStripe();
-      try {
-        const customer = await stripe.customers.create({
-          email: user.email,
-          metadata: { firebaseUID: user.uid },
-        });
-        transaction.set(userDocRef, {
-          stripeCustomerId: customer.id,
-          email: user.email,
-          hasPaid: false,
-        });
-      } catch (err) {
-        console.error(`Error creating Stripe customer for UID: ${user.uid}`, err);
-        throw err; // Re-throw to fail the transaction.
-      }
-    }
-
-    // Idempotently create or update the public user document.
-    if (!userPublicDoc.exists) {
-      console.log(`Creating new public user document for UID: ${user.uid}.`);
-      transaction.set(userPublicDocRef, {
-        displayName: user.displayName || null,
-        photoURL: user.photoURL || null,
-        friendCode: user.uid,
-        scores: {
-          perfectScores: 0,
-          totalAnswered: 0,
-          totalCorrect: 0,
-        },
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
-    } else {
-      // The document exists; check if the displayName needs to be updated.
-      const existingData = userPublicDoc.data();
-      if (existingData && !existingData.displayName && user.displayName) {
-        console.log(`Updating displayName for UID: ${user.uid}.`);
-        transaction.update(userPublicDocRef, { displayName: user.displayName });
-      }
-    }
+  // Create a new Stripe customer
+  const stripe = getStripe();
+  const customer = await stripe.customers.create({
+    email: user.email,
+    metadata: { firebaseUID: user.uid },
   });
+
+  // Set the private user document
+  const userDocRef = db.collection("users").doc(user.uid);
+  batch.set(userDocRef, {
+    stripeCustomerId: customer.id,
+    email: user.email,
+    hasPaid: false,
+  });
+
+  // Set the public user document
+  const userPublicDocRef = db.collection("users_public").doc(user.uid);
+  batch.set(userPublicDocRef, {
+    displayName: user.displayName || null,
+    photoURL: user.photoURL || null,
+    friendCode: user.uid,
+    scores: {
+      perfectScores: 0,
+      totalAnswered: 0,
+      totalCorrect: 0,
+    },
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  // Commit the batch
+  await batch.commit();
 };
 
 // Background trigger (v1) to set up a new user.
 export const onUserCreate = functions.region("us-central1").runWith({ secrets: ["STRIPE_SECRET_KEY"] }).auth.user().onCreate(setupNewUser);
 
-// Cloud Function to create a new user account.
-export const createUserAccount = onCall({ region: "us-central1", secrets: ["STRIPE_SECRET_KEY"], memory: "256MiB", cors: [ "https://www.linguil.app", "https://linguil.web.app", "https://linguil.firebaseapp.com", /^https:\/\/.*\.cloudworkstations\.dev$/ ] }, async (request) => {
-  // Destructure required parameters from the request data.
-  const { name, email, password } = request.data;
+// HTTP-triggered Cloud Function to create a new user account.
+export const createUserAccount = onRequest({ region: "us-central1", secrets: ["STRIPE_SECRET_KEY"], memory: "256MiB", cors: [ "https://www.linguil.app", "https://linguil.web.app", "https://linguil.firebaseapp.com", /^https:\/\/.*\.cloudworkstations\.dev$/ ] }, async (req, res) => {
+  // Destructure required parameters from the request body.
+  const { name, email, password } = req.body;
 
   // Validate that all required parameters are present.
   if (!name || !email || !password) {
-    throw new HttpsError("invalid-argument", "Missing required parameters: name, email, or password");
+    res.status(400).send("Missing required parameters: name, email, or password");
+    return;
   }
   
   let userRecord: admin.auth.UserRecord | null = null;
@@ -78,7 +62,8 @@ export const createUserAccount = onCall({ region: "us-central1", secrets: ["STRI
     // Check if a user with the given email already exists.
     try {
       await admin.auth().getUserByEmail(email);
-      throw new HttpsError("already-exists", "A user with this email address already exists");
+      res.status(409).send("A user with this email address already exists");
+      return;
     } catch (error: any) {
       // If the error is anything other than 'user-not-found', re-throw it.
       if (error.code !== "auth/user-not-found") {
@@ -93,14 +78,11 @@ export const createUserAccount = onCall({ region: "us-central1", secrets: ["STRI
       displayName: name,
     });
     
-    // Set up the user's data in Stripe and Firestore.
-    await setupNewUser(userRecord);
-
     // Generate a custom token for the client to use for a reliable sign-in.
     const customToken = await admin.auth().createCustomToken(userRecord.uid);
 
     // Return the token to the client.
-    return { token: customToken };
+    res.json({ token: customToken });
 
   } catch (err: unknown) {
     // Clean up user record if user creation or setup fails.
@@ -111,22 +93,8 @@ export const createUserAccount = onCall({ region: "us-central1", secrets: ["STRI
         console.error(`CRITICAL: Failed to clean up user ${userRecord.uid} after a failed signup.`, cleanupError);
       }
     }
-    // Handle any errors that occur during the process.
-    const error = err as { code?: string; message?: string };
-
-    // Handle specific Firebase Authentication errors.
-    if (error.code && error.code.startsWith("auth/")) {
-      const message = error.message || "An unexpected authentication error occurred.";
-      throw new HttpsError("failed-precondition", message, { code: error.code });
-    }
-
-    // Handle HttpsError instances.
-    if (err instanceof HttpsError) {
-      throw err;
-    }
-
-    // Log and throw a generic internal error for any other cases.
+    
     console.error("Error in createUserAccount:", err);
-    throw new HttpsError("internal", "An unexpected error occurred while creating the user account");
+    res.status(500).send("An unexpected error occurred while creating the user account");
   }
 });

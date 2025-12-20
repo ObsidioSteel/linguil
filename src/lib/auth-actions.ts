@@ -4,10 +4,9 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  updateProfile,
   sendPasswordResetEmail,
   signOut,
+  signInWithCustomToken,
   type UserCredential,
 } from 'firebase/auth';
 import { getFirebaseAuth } from '@/lib/firebase/firebase';
@@ -75,16 +74,22 @@ export const handleSignInWithEmail = async (email: string, password: string): Pr
   return await signInWithEmailAndPassword(auth, email, password);
 };
 
-// Creates a new user with email/password, updates their profile with the provided name, and signs them in.
+// Creates a new user by calling the backend proxy, then signs them in.
 export const handleSignUpWithEmail = async (name: string, email: string, password: string): Promise<UserCredential> => {
-  const auth = await getFirebaseAuth();
-  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-  if (userCredential.user) {
-    await updateProfile(userCredential.user, { displayName: name });
-    await userCredential.user.reload();
+  const response = await fetch('/api/create-user-account', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email, password }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Sign-up failed');
   }
 
-  return userCredential;
+  const auth = await getFirebaseAuth();
+  return await signInWithCustomToken(auth, data.token);
 };
 
 // Sends a password reset email to the specified user.
