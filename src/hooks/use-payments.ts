@@ -1,7 +1,6 @@
 'use client';
 
 import { useReducer, useCallback } from 'react';
-import { getFirebaseFunctions } from '@/lib/firebase/firebase';
 import { useToast } from './use-toast';
 import { useAuth } from './use-auth';
 
@@ -59,19 +58,11 @@ export const usePayments = () => {
     }
 
     try {
-      const functions = await getFirebaseFunctions(); // Get the Firebase Functions service.
-      if (!functions) {
-        throw new Error('Firebase Functions service is not available');
-      }
-
       if (!priceId) { // Ensure a product price ID is provided.
         showErrorToast("Payment error", "No product selected");
         dispatch({ type: 'PROCESS_ERROR', payload: 'Price ID not specified' });
         return;
       }
-      
-      const { httpsCallable } = await import('firebase/functions'); // Dynamically import `httpsCallable`.
-      const createCheckout = httpsCallable(functions, 'createCheckoutSession'); // Reference the cloud function.
 
       const baseUrl = successUrl || window.location.href; // Determine the success URL.
       const finalUrl = new URL(baseUrl);
@@ -79,14 +70,27 @@ export const usePayments = () => {
       
       const cancelUrl = window.location.origin; // Set the cancellation URL.
 
-      // Call the cloud function with the necessary parameters.
-      const response: any = await createCheckout({ 
-        priceId, 
-        successUrl: finalUrl.toString(),
-        cancelUrl 
+      // Call the proxy API route with the necessary parameters (to fix Safari cross-origin issues).
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          priceId,
+          successUrl: finalUrl.toString(),
+          cancelUrl,
+        }),
       });
 
-      const url = response.data.url;
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create checkout session");
+      }
+      
+      // Passes the response from the Firebase checkout function (which returns the date and URL).
+      const url = data.data.url;
       if (!url) {
         throw new Error("Failed to retrieve checkout session URL");
       }

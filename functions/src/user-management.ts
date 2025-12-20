@@ -6,45 +6,57 @@ import { getStripe } from "./stripe";
 
 // Internal function to set up a new user's documents and Stripe customer.
 const setupNewUser = async (user: admin.auth.UserRecord) => {
-  const stripe = getStripe();
-  try {
-    // Create a new customer in Stripe.
-    const customer = await stripe.customers.create({
-      email: user.email,
-      metadata: { firebaseUID: user.uid },
-    });
+  const userPublicDocRef = db.collection("users_public").doc(user.uid);
+  const userDocRef = db.collection("users").doc(user.uid);
 
-    // Use a Firestore batch to perform multiple writes atomically.
-    const batch = db.batch();
+  // Use a transaction to atomically set up the user.
+  await db.runTransaction(async (transaction) => {
+    const userPublicDoc = await transaction.get(userPublicDocRef);
+    const userDoc = await transaction.get(userDocRef);
 
-    // Create a document for the user in the 'users' collection.
-    const userDocRef = db.collection("users").doc(user.uid);
-    batch.set(userDocRef, {
-      stripeCustomerId: customer.id,
-      email: user.email,
-      hasPaid: false,
-    });
+    // Idempotently create the private user document and Stripe customer.
+    if (!userDoc.exists) {
+      console.log(`Creating new private user document for UID: ${user.uid}.`);
+      const stripe = getStripe();
+      try {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          metadata: { firebaseUID: user.uid },
+        });
+        transaction.set(userDocRef, {
+          stripeCustomerId: customer.id,
+          email: user.email,
+          hasPaid: false,
+        });
+      } catch (err) {
+        console.error(`Error creating Stripe customer for UID: ${user.uid}`, err);
+        throw err; // Re-throw to fail the transaction.
+      }
+    }
 
-    // Create a document for the user in the 'users_public' collection.
-    const userPublicDocRef = db.collection("users_public").doc(user.uid);
-    batch.set(userPublicDocRef, {
-      displayName: user.displayName || null,
-      photoURL: user.photoURL || null,
-      friendCode: user.uid,
-      scores: {
-        perfectScores: 0,
-        totalAnswered: 0,
-        totalCorrect: 0,
-      },
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    // Commit the batch write.
-    await batch.commit();
-
-  } catch (err) {
-    console.error(`Error in setupNewUser for UID: ${user.uid}`, err);
-  }
+    // Idempotently create or update the public user document.
+    if (!userPublicDoc.exists) {
+      console.log(`Creating new public user document for UID: ${user.uid}.`);
+      transaction.set(userPublicDocRef, {
+        displayName: user.displayName || null,
+        photoURL: user.photoURL || null,
+        friendCode: user.uid,
+        scores: {
+          perfectScores: 0,
+          totalAnswered: 0,
+          totalCorrect: 0,
+        },
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    } else {
+      // The document exists; check if the displayName needs to be updated.
+      const existingData = userPublicDoc.data();
+      if (existingData && !existingData.displayName && user.displayName) {
+        console.log(`Updating displayName for UID: ${user.uid}.`);
+        transaction.update(userPublicDocRef, { displayName: user.displayName });
+      }
+    }
+  });
 };
 
 // Background trigger (v1) to set up a new user.
