@@ -1,10 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
-import { usePayments } from '@/hooks/use-payments';
-import { useToast } from '@/hooks/use-toast';
-import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { buttonVariants } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -13,6 +10,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
+import { cn } from '@/lib/utils';
 
 // Stripe Price IDs from environment variables.
 const FIXED_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_FIXED;
@@ -24,64 +22,13 @@ interface PaymentDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// The PaymentDialog handles the UI for making payments.
+// Presents links to the checkout page, ensuring reliable redirection on all browsers.
 export const PaymentDialog = ({ open, onOpenChange }: PaymentDialogProps) => {
-  // Custom hooks for payment processing and toasts.
-  const { createCheckoutSession, isProcessing, error } = usePayments();
-  const { toast } = useToast();
-
-  // Shows a toast message on payment error.
-  useEffect(() => {
-    if (error) {
-      toast({
-        title: 'Payment Error',
-        description: error,
-        variant: 'destructive',
-      });
-    }
-  }, [error, toast]);
-
-  // Handles the payment process on button click.
-  const handlePayment = async (priceId: string | undefined, type: 'fixed' | 'custom') => {
-    // Checks if Price ID is configured.
-    if (priceId) {
-      // Constructs success URL for post-payment redirect.
-      let successUrl = `${window.location.origin}${window.location.pathname}`;
-      // Appends query params for fixed price post-payment handling.
-      if (type === 'fixed') {
-        successUrl += '?value=1.99&currency=USD'; // Default currency is USD
-      }
-
-      // Creates a Stripe Checkout session.
-      await createCheckoutSession(priceId, successUrl);
-
-    } else {
-      // Shows error toast if Price ID is not set up.
-      toast({
-        title: 'Configuration error',
-        description: 'Payment processing is not set up correctly',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  // Prevents closing the dialog during payment processing.
-  const handleOpenChange = (newOpenState: boolean) => {
-    if (isProcessing) return;
-    onOpenChange(newOpenState);
-  };
 
   // Renders the payment dialog.
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent hideCloseButton className="sm:max-w-xs">
-        <div className="relative">
-          {/* Shows loading spinner overlay during processing. */}
-          {isProcessing && (
-            <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10 rounded-lg">
-              <LoadingSpinner />
-            </div>
-          )}
           {/* Dialog header. */}
           <DialogHeader>
             <DialogTitle>linguil+</DialogTitle>
@@ -98,26 +45,33 @@ export const PaymentDialog = ({ open, onOpenChange }: PaymentDialogProps) => {
             Note: Offline games do not affect leaderboards.
           </p>
           
-          {/* Payment buttons. */}
+          {/* Payment links styled as buttons. */}
           <div className="flex flex-col gap-2 items-center">
-            {/* Fixed price option button. */}
-            <Button 
-              onClick={() => handlePayment(FIXED_PRICE_ID, 'fixed')}
-              className="w-full"
-              disabled={isProcessing}
+            {/* Fixed price option link. */}
+            <Link 
+              href={`/checkout?priceId=${FIXED_PRICE_ID}&type=fixed`}
+              className={cn(buttonVariants(), 'w-full')}
+              aria-disabled={!FIXED_PRICE_ID}
+              onClick={(e) => {
+                if (!FIXED_PRICE_ID) e.preventDefault();
+                onOpenChange(false);
+              }}
             >
               Unlock
-            </Button>
-            {/* Custom/donation price option button. */}
-            <Button 
-              onClick={() => handlePayment(CUSTOM_PRICE_ID, 'custom')}
-              className="w-full"
-              disabled={isProcessing}
+            </Link>
+            {/* Custom/donation price option link. */}
+            <Link 
+              href={`/checkout?priceId=${CUSTOM_PRICE_ID}&type=custom`}
+              className={cn(buttonVariants(), 'w-full')}
+              aria-disabled={!CUSTOM_PRICE_ID}
+              onClick={(e) => {
+                if (!CUSTOM_PRICE_ID) e.preventDefault();
+                onOpenChange(false);
+              }}
             >
               Unlock + donate
-            </Button>
+            </Link>
           </div>
-        </div>
       </DialogContent>
     </Dialog>
   );

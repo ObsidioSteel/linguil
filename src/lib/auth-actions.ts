@@ -81,6 +81,7 @@ export const handleSignUpWithEmail = async (name: string, email: string, passwor
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   if (userCredential.user) {
     await updateProfile(userCredential.user, { displayName: name });
+    await userCredential.user.reload();
   }
 
   return userCredential;

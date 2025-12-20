@@ -93,11 +93,11 @@ export const createUserAccount = onCall({ region: "us-central1", secrets: ["STRI
   } catch (err: unknown) {
     // Clean up user record if user creation or setup fails.
     if (userRecord) {
-        try {
-            await admin.auth().deleteUser(userRecord.uid);
-        } catch (cleanupError) {
-            console.error(`CRITICAL: Failed to clean up user ${userRecord.uid} after a failed signup.`, cleanupError);
-        }
+      try {
+        await admin.auth().deleteUser(userRecord.uid);
+      } catch (cleanupError) {
+        console.error(`CRITICAL: Failed to clean up user ${userRecord.uid} after a failed signup.`, cleanupError);
+      }
     }
     // Handle any errors that occur during the process.
     const error = err as { code?: string; message?: string };
