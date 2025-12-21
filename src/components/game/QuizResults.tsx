@@ -119,12 +119,11 @@ const CountdownTimer = memo(() => {
   // Formatted time-left string.
   const [timeLeft, setTimeLeft] = useState('');
   useEffect(() => {
-    // Calculate time until next midnight.
+    // Calculate time until next midnight UTC.
     const calculateTimeLeft = () => {
-      const now = new Date().getTime();
-      const midnight = new Date();
-      midnight.setHours(24, 0, 0, 0); // Set to next day's midnight.
-      const difference = midnight.getTime() - now;
+      const now = new Date();
+      const midnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+      const difference = midnight.getTime() - now.getTime();
       if (difference > 0) {
         const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
         const minutes = Math.floor((difference / 1000 / 60) % 60);

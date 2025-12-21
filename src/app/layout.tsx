@@ -26,11 +26,7 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: '/icon.png?v=1', type: 'image/png' },
-      { url: '/icon-192x192.png?v=1', type: 'image/png', sizes: '192x192' },
-      { url: '/icon-512x512.png?v=1', type: 'image/png', sizes: '512x512' },
     ],
-    shortcut: '/favicon.ico?v=1',
-    apple: '/apple-icon.png?v=1',
   },
 };
 
@@ -44,6 +40,12 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Favicon links */}
+        <link rel="shortcut icon" href="/favicon.ico?v=1" />
+        <link rel="apple-touch-icon" href="/apple-icon.png?v=1" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png?v=1" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/icon-512x512.png?v=1" />
+
         {/* Immediately sets the color mode to prevent theme flashing on load. */}
         <script
           dangerouslySetInnerHTML={{
