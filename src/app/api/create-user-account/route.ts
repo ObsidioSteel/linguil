@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // The URL of the Firebase function to create a new user via email/password.
 const CREATE_USER_URL = process.env.NEXT_PUBLIC_FIREBASE_CREATE_USER_FUNCTION_URL!;
 
+// Forwards the client's request to the Firebase function (to solve cross-origin issues).
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

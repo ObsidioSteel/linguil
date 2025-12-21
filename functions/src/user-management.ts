@@ -6,40 +6,45 @@ import { getStripe } from "./stripe";
 
 // Internal function to set up a new user's documents and Stripe customer.
 const setupNewUser = async (user: admin.auth.UserRecord) => {
-  // Get a new write batch
-  const batch = db.batch();
-
-  // Create a new Stripe customer
-  const stripe = getStripe();
-  const customer = await stripe.customers.create({
-    email: user.email,
-    metadata: { firebaseUID: user.uid },
-  });
-
-  // Set the private user document
-  const userDocRef = db.collection("users").doc(user.uid);
-  batch.set(userDocRef, {
-    stripeCustomerId: customer.id,
-    email: user.email,
-    hasPaid: false,
-  });
-
-  // Set the public user document
   const userPublicDocRef = db.collection("users_public").doc(user.uid);
-  batch.set(userPublicDocRef, {
-    displayName: user.displayName || null,
-    photoURL: user.photoURL || null,
-    friendCode: user.uid,
-    scores: {
-      perfectScores: 0,
-      totalAnswered: 0,
-      totalCorrect: 0,
-    },
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
+  const doc = await userPublicDocRef.get();
 
-  // Commit the batch
-  await batch.commit();
+  // Only proceed if the user's public document does not already exist.
+  if (!doc.exists) {
+    // Get a new write batch
+    const batch = db.batch();
+
+    // Create a new Stripe customer
+    const stripe = getStripe();
+    const customer = await stripe.customers.create({
+      email: user.email,
+      metadata: { firebaseUID: user.uid },
+    });
+
+    // Set the private user document
+    const userDocRef = db.collection("users").doc(user.uid);
+    batch.set(userDocRef, {
+      stripeCustomerId: customer.id,
+      email: user.email,
+      hasPaid: false,
+    });
+
+    // Set the public user document
+    batch.set(userPublicDocRef, {
+      displayName: user.displayName || null,
+      photoURL: user.photoURL || null,
+      friendCode: user.uid,
+      scores: {
+        perfectScores: 0,
+        totalAnswered: 0,
+        totalCorrect: 0,
+      },
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Commit the batch
+    await batch.commit();
+  }
 };
 
 // Background trigger (v1) to set up a new user.
@@ -77,6 +82,9 @@ export const createUserAccount = onRequest({ region: "us-central1", secrets: ["S
       password: password,
       displayName: name,
     });
+
+    // Manually call setupNewUser to ensure the displayName is captured correctly.
+    await setupNewUser(userRecord);
     
     // Generate a custom token for the client to use for a reliable sign-in.
     const customToken = await admin.auth().createCustomToken(userRecord.uid);
