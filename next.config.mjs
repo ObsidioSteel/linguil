@@ -123,15 +123,6 @@ const nextConfig = {
           },
         ],
       },
-      {
-        source: '/(logo\\.png|icon\\.png|apple-icon\\.png|icon-192x192\\.png|icon-512x512\\.png|favicon\\.ico)',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
     ];
   },
 

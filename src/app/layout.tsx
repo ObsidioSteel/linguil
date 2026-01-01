@@ -24,9 +24,13 @@ export const metadata: Metadata = {
   title: 'linguil',
   description: 'The daily language guessing game',
   icons: {
-    icon: 'icon.png?v=2',
-    shortcut: '/favicon.ico?v=2',
-    apple: '/apple-icon.png?v=2',
+    icon: [
+      { url: '/icon.png?v=3', type: 'image/png' },
+      { url: '/icon-192x192.png?v=3', type: 'image/png', sizes: '192x192' },
+      { url: '/icon-512x512.png?v=3', type: 'image/png', sizes: '512x512' },
+    ],
+    shortcut: '/favicon.ico?v=3',
+    apple: '/apple-icon.png?v=3',
   },
   openGraph: {
     title: 'linguil',
@@ -35,7 +39,7 @@ export const metadata: Metadata = {
     siteName: 'linguil',
     images: [
       {
-        url: '/icon-512x512.png?v=2',
+        url: '/icon-512x512.png?v=3', 
         width: 512,
         height: 512,
         alt: 'linguil logo',
@@ -48,7 +52,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'linguil',
     description: 'The daily language guessing game',
-    images: ['/icon-512x512.png?v=2'],
+    images: ['/icon-512x512.png?v=3'], 
   },
 };
 
@@ -62,15 +66,6 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Explicit meta description */}
-        <meta name="description" content="The daily language guessing game" />
-
-        {/* Favicon links for maximum compatibility */}
-        <link rel="shortcut icon" href="/favicon.ico?v=2" />
-        <link rel="apple-touch-icon" href="/apple-icon.png?v=2" />
-        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png?v=2" />
-        <link rel="icon" type="image/png" sizes="512x512" href="/icon-512x512.png?v=2" />
-
         {/* Immediately sets the color mode to prevent theme flashing on load. */}
         <script
           dangerouslySetInnerHTML={{
