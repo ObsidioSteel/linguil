@@ -28,6 +28,28 @@ export const metadata: Metadata = {
     shortcut: '/favicon.ico?v=2',
     apple: '/apple-icon.png?v=2',
   },
+  openGraph: {
+    title: 'linguil',
+    description: 'The daily language guessing game',
+    url: 'https://linguil.app',
+    siteName: 'linguil',
+    images: [
+      {
+        url: '/icon-512x512.png?v=2',
+        width: 512,
+        height: 512,
+        alt: 'linguil logo',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'linguil',
+    description: 'The daily language guessing game',
+    images: ['/icon-512x512.png?v=2'],
+  },
 };
 
 // Define the root layout component for the entire application.
