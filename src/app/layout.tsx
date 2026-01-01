@@ -24,9 +24,9 @@ export const metadata: Metadata = {
   title: 'linguil',
   description: 'The daily language guessing game',
   icons: {
-    icon: [
-      { url: '/icon.png?v=1', type: 'image/png' },
-    ],
+    icon: 'icon.png?v=2',
+    shortcut: '/favicon.ico?v=2',
+    apple: '/apple-icon.png?v=2',
   },
 };
 
@@ -40,11 +40,14 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Favicon links */}
-        <link rel="shortcut icon" href="/favicon.ico?v=1" />
-        <link rel="apple-touch-icon" href="/apple-icon.png?v=1" />
-        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png?v=1" />
-        <link rel="icon" type="image/png" sizes="512x512" href="/icon-512x512.png?v=1" />
+        {/* Explicit meta description */}
+        <meta name="description" content="The daily language guessing game" />
+
+        {/* Favicon links for maximum compatibility */}
+        <link rel="shortcut icon" href="/favicon.ico?v=2" />
+        <link rel="apple-touch-icon" href="/apple-icon.png?v=2" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png?v=2" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/icon-512x512.png?v=2" />
 
         {/* Immediately sets the color mode to prevent theme flashing on load. */}
         <script
