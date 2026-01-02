@@ -25,12 +25,12 @@ export const metadata: Metadata = {
   description: 'The daily language guessing game',
   icons: {
     icon: [
-      { url: '/icon.png?v=3', type: 'image/png' },
-      { url: '/icon-192x192.png?v=3', type: 'image/png', sizes: '192x192' },
-      { url: '/icon-512x512.png?v=3', type: 'image/png', sizes: '512x512' },
+      { url: '/icon.png?v=4', type: 'image/png' },
+      { url: '/icon-192x192.png?v=4', type: 'image/png', sizes: '192x192' },
+      { url: '/icon-512x512.png?v=4', type: 'image/png', sizes: '512x512' },
     ],
-    shortcut: '/favicon.ico?v=3',
-    apple: '/apple-icon.png?v=3',
+    shortcut: '/favicon.ico?v=4',
+    apple: '/apple-icon.png?v=4',
   },
   openGraph: {
     title: 'linguil',
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     siteName: 'linguil',
     images: [
       {
-        url: '/icon-512x512.png?v=3', 
+        url: '/icon-512x512.png?v=4', 
         width: 512,
         height: 512,
         alt: 'linguil logo',
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'linguil',
     description: 'The daily language guessing game',
-    images: ['/icon-512x512.png?v=3'], 
+    images: ['/icon-512x512.png?v=4'], 
   },
 };
 
