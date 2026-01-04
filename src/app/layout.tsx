@@ -23,16 +23,6 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://linguil.app'),
   title: 'linguil | The daily language guessing game.',
   description: 'Play a new word daily, compete with friends, and add new languages!',
-  manifest: '/manifest.json',
-  icons: {
-    icon: [
-      { url: '/icon.png?v=5', type: 'image/png' },
-      { url: '/icon-192x192.png?v=5', type: 'image/png', sizes: '192x192' },
-      { url: '/icon-512x512.png?v=5', type: 'image/png', sizes: '512x512' },
-    ],
-    shortcut: '/favicon.ico?v=5',
-    apple: '/apple-icon.png?v=5',
-  },
   openGraph: {
     title: 'linguil | The daily language guessing game.',
     description: 'Play a new word daily, compete with friends, and add new languages!',
@@ -66,26 +56,15 @@ export default async function RootLayout({
 
   const structuredData = {
     '@context': 'https://schema.org',
-    '@type': 'VideoGame',
+    '@type': ['VideoGame', 'WebApplication'],
     'name': 'linguil',
-    'description': 'Play a new word daily, compete with friends, and add new languages!',
     'url': 'https://linguil.app',
-    'image': 'https://linguil.app/logo.png',
+    'description': 'Play a new word daily, compete with friends, and add new languages!',
+    'applicationCategory': 'Game',
+    'operatingSystem': 'Web Browser',
+    'inLanguage': 'en-US',
     'isAccessibleForFree': true,
     'playMode': 'SinglePlayer',
-    'applicationCategory': 'Game',
-    'inLanguage': 'en-US',
-    'gamePlatform': [
-        'PC',
-        'Web Browser',
-        'MobileWeb',
-        'iOS',
-        'Android'
-    ],
-    'author': {
-        '@type': 'Organization',
-        'name': 'linguil'
-    },
     'publisher': {
         '@type': 'Organization',
         'name': 'linguil',
@@ -93,12 +72,21 @@ export default async function RootLayout({
             '@type': 'ImageObject',
             'url': 'https://linguil.app/logo.png'
         }
-    }
+    },
+    'image': 'https://linguil.app/logo.png'
   };
 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Manually added links for maximum compatibility. */}
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="shortcut icon" href="/favicon.ico?v=5" />
+        <link rel="icon" type="image/png" href="/icon.png?v=5" />
+        <link rel="apple-touch-icon" type="image/png" href="/apple-icon.png?v=5" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png?v=5" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/icon-512x512.png?v=5" />
+
         {/* Immediately sets the color mode to prevent theme flashing on load. */}
         <script
           dangerouslySetInnerHTML={{
@@ -130,6 +118,7 @@ export default async function RootLayout({
         <link rel="preconnect" href="https://www.googletagmanager.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://firebase.googleapis.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://apis.google.com" crossOrigin="anonymous" />
+
         {/* Add JSON-LD structured data for enhanced SEO. */}
         <script
           type="application/ld+json"
