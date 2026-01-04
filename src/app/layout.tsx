@@ -21,8 +21,9 @@ const sourceCodePro = Source_Code_Pro({ subsets: ['latin'], weight: ['400', '600
 // Define metadata for the application's head tag.
 export const metadata: Metadata = {
   metadataBase: new URL('https://linguil.app'),
-  title: 'linguil',
-  description: 'The daily language guessing game',
+  title: 'linguil | The daily language guessing game.',
+  description: 'Play a new word daily, compete with friends, and add new languages!',
+  manifest: '/manifest.json',
   icons: {
     icon: [
       { url: '/icon.png?v=5', type: 'image/png' },
@@ -33,8 +34,8 @@ export const metadata: Metadata = {
     apple: '/apple-icon.png?v=5',
   },
   openGraph: {
-    title: 'linguil',
-    description: 'The daily language guessing game',
+    title: 'linguil | The daily language guessing game.',
+    description: 'Play a new word daily, compete with friends, and add new languages!',
     url: 'https://linguil.app',
     siteName: 'linguil',
     images: [
@@ -50,8 +51,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary',
-    title: 'linguil',
-    description: 'The daily language guessing game',
+    title: 'linguil | The daily language guessing game.',
+    description: 'Play a new word daily, compete with friends, and add new languages!',
     images: ['/logo.png?v=5'],
   },
 };
@@ -62,6 +63,29 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebSite',
+        'name': 'linguil',
+        'url': 'https://linguil.app',
+      },
+      {
+        '@type': 'VideoGame',
+        'name': 'linguil',
+        'url': 'https://linguil.app',
+        'description': 'Play a new word daily, compete with friends, and add new languages!',
+        'operatingSystem': 'Any',
+        'applicationCategory': 'Game',
+        'playMode': 'SinglePlayer',
+        'inLanguage': 'en-US',
+        'gameplayMechanics': 'Guessing Game',
+        'isAccessibleForFree': true,
+      },
+    ],
+  };
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -97,6 +121,11 @@ export default async function RootLayout({
         <link rel="preconnect" href="https://www.googletagmanager.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://firebase.googleapis.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://apis.google.com" crossOrigin="anonymous" />
+        {/* Add JSON-LD structured data for enhanced SEO. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
       </head>
       {/* Apply fonts and layout styles to the body. */}
       <body className={`${ptSans.variable} ${sourceCodePro.variable} font-body antialiased flex flex-col min-h-screen overflow-x-hidden`}>

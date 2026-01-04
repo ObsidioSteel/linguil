@@ -1,0 +1,23 @@
+{
+  "short_name": "linguil",
+  "name": "linguil | The daily language guessing game",
+  "description": "Play a new word daily, compete with friends, and add new languages!",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f0e9",
+  "theme_color": "#f5f0e9",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
