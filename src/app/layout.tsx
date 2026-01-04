@@ -21,10 +21,11 @@ const sourceCodePro = Source_Code_Pro({ subsets: ['latin'], weight: ['400', '600
 // Define metadata for the application's head tag.
 export const metadata: Metadata = {
   metadataBase: new URL('https://linguil.app'),
-  title: 'linguil | The daily language guessing game.',
+  title: 'linguil | The daily language guessing game',
   description: 'Play a new word daily, compete with friends, and add new languages!',
+  authors: [{ name: 'Charlie McCombie', url: 'https://github.com/Papuang' }],
   openGraph: {
-    title: 'linguil | The daily language guessing game.',
+    title: 'linguil | The daily language guessing game',
     description: 'Play a new word daily, compete with friends, and add new languages!',
     url: 'https://linguil.app',
     siteName: 'linguil',
@@ -41,7 +42,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary',
-    title: 'linguil | The daily language guessing game.',
+    title: 'linguil | The daily language guessing game',
     description: 'Play a new word daily, compete with friends, and add new languages!',
     images: ['/logo.png?v=5'],
   },
@@ -82,8 +83,8 @@ export default async function RootLayout({
         {/* Manually added links for maximum compatibility. */}
         <link rel="manifest" href="/manifest.json" />
         <link rel="shortcut icon" href="/favicon.ico?v=5" />
-        <link rel="icon" type="image/png" href="/icon.png?v=5" />
-        <link rel="apple-touch-icon" type="image/png" href="/apple-icon.png?v=5" />
+        <link rel="icon" href="/icon.png?v=5" type="image/png" />
+        <link rel="apple-touch-icon" href="/apple-icon.png?v=5" />
         <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png?v=5" />
         <link rel="icon" type="image/png" sizes="512x512" href="/icon-512x512.png?v=5" />
 
