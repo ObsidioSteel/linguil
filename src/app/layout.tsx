@@ -66,25 +66,40 @@ export default async function RootLayout({
 
   const structuredData = {
     '@context': 'https://schema.org',
-    '@graph': [
-      {
+    '@type': 'WebPage',
+    'name': 'linguil | The daily language guessing game.',
+    'url': 'https://linguil.app',
+    'isPartOf': {
         '@type': 'WebSite',
         'name': 'linguil',
-        'url': 'https://linguil.app',
-      },
-      {
+        'url': 'https://linguil.app'
+    },
+    'mainEntity': {
         '@type': 'VideoGame',
         'name': 'linguil',
         'url': 'https://linguil.app',
+        'image': 'https://linguil.app/logo.png',
         'description': 'Play a new word daily, compete with friends, and add new languages!',
+        'author': {
+            '@type': 'Person',
+            'name': 'Charlie McCombie',
+            'url': 'https://linguil.app'
+        },
+        'publisher': {
+            '@type': 'Organization',
+            'name': 'linguil',
+            'logo': {
+                '@type': 'ImageObject',
+                'url': 'https://linguil.app/logo.png'
+            }
+        },
         'operatingSystem': 'Any',
         'applicationCategory': 'Game',
         'playMode': 'SinglePlayer',
         'inLanguage': 'en-US',
         'gameplayMechanics': 'Guessing Game',
         'isAccessibleForFree': true,
-      },
-    ],
+    }
   };
 
   return (
