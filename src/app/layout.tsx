@@ -24,6 +24,16 @@ export const metadata: Metadata = {
   title: 'linguil | The daily language guessing game',
   description: 'Play a new word daily, compete with friends, and add new languages!',
   authors: [{ name: 'Charlie McCombie', url: 'https://github.com/Papuang' }],
+  manifest: '/manifest.json',
+  icons: {
+    shortcut: '/favicon.ico?v=5',
+    icon: [
+      { url: '/icon.png?v=5', type: 'image/png' },
+      { url: '/icon-192x192.png?v=5', type: 'image/png', sizes: '192x192' },
+      { url: '/icon-512x512.png?v=5', type: 'image/png', sizes: '512x512' },
+    ],
+    apple: '/apple-icon.png?v=5',
+  },
   openGraph: {
     title: 'linguil | The daily language guessing game',
     description: 'Play a new word daily, compete with friends, and add new languages!',
@@ -80,14 +90,6 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Manually added links for maximum compatibility. */}
-        <link rel="manifest" href="/manifest.json" />
-        <link rel="shortcut icon" href="/favicon.ico?v=5" />
-        <link rel="icon" href="/icon.png?v=5" type="image/png" />
-        <link rel="apple-touch-icon" href="/apple-icon.png?v=5" />
-        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png?v=5" />
-        <link rel="icon" type="image/png" sizes="512x512" href="/icon-512x512.png?v=5" />
-
         {/* Immediately sets the color mode to prevent theme flashing on load. */}
         <script
           dangerouslySetInnerHTML={{
