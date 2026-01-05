@@ -85,7 +85,7 @@ export default async function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta property="og:type" content="website" />
-        <link rel="icon" href="/favicon.ico" sizes="32x32" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/icon.svg" sizes="any" type="image/svg+xml" />
         <link rel="icon" href="/icon.png" type="image/png" />
         <link rel="icon" href="/icon-96x96.png" sizes="96x96" type="image/png" />
