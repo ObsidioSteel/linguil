@@ -32,6 +32,7 @@ export default function HomePage() {
       <div className="flex flex-col min-h-screen">
         <div className="flex-grow flex flex-col items-center justify-center gap-6 text-center">
           <Header />
+          <h1 className="sr-only">linguil | The daily language guessing game</h1>
           <h2 className="text-xs italic -mb-1 -mt-6 text-center">The daily language guessing game</h2>
           {/* Link to the main game page. */}
           <Link href="/game" className="w-full max-w-xs">
