@@ -10,7 +10,7 @@ import {
 } from 'react';
 import type { ReactNode, ComponentType } from 'react';
 import { onIdTokenChanged, type User, getAdditionalUserInfo, signInWithCustomToken } from 'firebase/auth';
-import { doc, onSnapshot, type Firestore, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, type Firestore, } from 'firebase/firestore';
 import type { AuthDialogProps } from '@/components/auth/AuthDialog';
 import Cookies from 'js-cookie';
 import { GlobalLoadingSpinner } from '@/components/common/GlobalLoadingSpinner';
