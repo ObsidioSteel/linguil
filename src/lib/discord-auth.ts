@@ -1,6 +1,6 @@
 'use client';
 
-import { getDiscordSdk } from '@/lib/discord/sdk';
+import { getDiscordSdk } from '@/lib/discord';
 import { getFirebaseAuth } from '@/lib/firebase/firebase';
 import { signInWithCustomToken, type UserCredential } from 'firebase/auth';
 
@@ -12,8 +12,12 @@ import { signInWithCustomToken, type UserCredential } from 'firebase/auth';
 export const handleSignInWithDiscord = async (): Promise<UserCredential> => {
   const discordSdk = await getDiscordSdk();
 
+  if (!discordSdk) {
+    throw new Error('Discord SDK failed to initialize.');
+  }
+
   // Get an OAuth2 code from the Discord client.
-  const { code } = await discordSdk.commands.authenticate({
+  const { code } = await (discordSdk.commands.authenticate as any)({
     client_id: process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!,
     response_type: 'code',
     scope: ['identify', 'guilds.members.read'],
