@@ -35,7 +35,6 @@ headers:
       - key: Cross-Origin-Opener-Policy
         value: same-origin-allow-popups
 
-
 runConfig:
   # Specifies the number of vCPU cores per server instance.
   cpu: 1
