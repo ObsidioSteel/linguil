@@ -26,6 +26,8 @@ env:
     value: "1:485538549135:web:deb4d012c549597025cffa"
   - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
     value: "G-DD4VPW4P34"
+  - variable: NEXT_PUBLIC_DISCORD_CLIENT_ID
+    value: "1473406949792940247"
 
 headers:
   - source: /.*

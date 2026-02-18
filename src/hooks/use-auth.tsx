@@ -9,8 +9,8 @@ import {
   useCallback,
 } from 'react';
 import type { ReactNode, ComponentType } from 'react';
-import { onIdTokenChanged, type User, getAdditionalUserInfo } from 'firebase/auth';
-import { doc, onSnapshot, type Firestore } from 'firebase/firestore';
+import { onIdTokenChanged, type User, getAdditionalUserInfo, signInWithCustomToken } from 'firebase/auth';
+import { doc, onSnapshot, type Firestore, setDoc } from 'firebase/firestore';
 import type { AuthDialogProps } from '@/components/auth/AuthDialog';
 import Cookies from 'js-cookie';
 import { GlobalLoadingSpinner } from '@/components/common/GlobalLoadingSpinner';
@@ -18,6 +18,7 @@ import { useToast } from './use-toast';
 import { getAuthErrorMessage } from '@/lib/auth-actions';
 import { getFirebaseAuth, getFirebaseFirestore, getFirebaseAnalytics } from '@/lib/firebase/firebase';
 import { logEvent as logAnalyticsEvent, setUserProperties, setUserId } from 'firebase/analytics';
+import { getDiscordSdk, openExternalLink } from '@/lib/discord';
 
 // Defines the cookie name for the Firebase ID token.
 const FIREBASE_ID_TOKEN_COOKIE = 'firebaseIdToken';
@@ -207,20 +208,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Handles Google sign-in.
   const signInWithGoogle = useCallback(async (): Promise<void> => {
     clearAuthError();
-    try {
-      const { signInWithGoogle: signIn } = await import('@/lib/auth-actions');
-      const userCredential = await signIn();
-      const user = userCredential.user;
-      const idTokenResult = await user.getIdTokenResult();
-      const paidStatus = idTokenResult.claims.hasPaid === true;
-      setUser(user);
-      setHasPaid(paidStatus);
-      Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1 });
-      const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser ?? false;
-      logEvent(isNewUser ? 'sign_up' : 'login', { method: 'google' });
-      setIsAuthDialogOpen(false);
-    } catch (error) {
-      handleAuthError(error);
+    const discordSdk = getDiscordSdk();
+    if (discordSdk) {
+      // Discord flow
+      try {
+        const db = await getFirebaseFirestore();
+        if (!db) {
+          handleAuthError("Failed to connect to user database");
+          return;
+        }
+        const auth = await getFirebaseAuth();
+        const sessionId = crypto.randomUUID();
+        const unsub = onSnapshot(doc(db, "auth_sessions", sessionId), async (doc) => {
+          if (doc.exists() && doc.data().customToken) {
+            await signInWithCustomToken(auth, doc.data().customToken);
+            unsub();
+          }
+        });
+        await openExternalLink(`https://linguil.app/login?sessionId=${sessionId}`);
+      } catch (error) {
+        handleAuthError(error);
+      }
+    } else {
+      // Standard web flow
+      try {
+        const { signInWithGoogle: signIn } = await import('@/lib/auth-actions');
+        const userCredential = await signIn();
+        const user = userCredential.user;
+        const idTokenResult = await user.getIdTokenResult();
+        const paidStatus = idTokenResult.claims.hasPaid === true;
+        setUser(user);
+        setHasPaid(paidStatus);
+        Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1 });
+        const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser ?? false;
+        logEvent(isNewUser ? 'sign_up' : 'login', { method: 'google' });
+        setIsAuthDialogOpen(false);
+      } catch (error) {
+        handleAuthError(error);
+      }
     }
   }, [clearAuthError, handleAuthError, logEvent]);
 

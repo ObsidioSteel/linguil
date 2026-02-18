@@ -3,7 +3,7 @@ import 'server-only';
 let adminInitializationPromise: Promise<void> | undefined = undefined;
 
 // Initializes the Firebase Admin SDK if not already running.
-const initializeFirebaseAdmin = (): Promise<void> => {
+export const initializeFirebaseAdmin = (): Promise<void> => {
     if (!adminInitializationPromise) {
         adminInitializationPromise = new Promise((resolve) => {
             if (admin.apps.length > 0) {
