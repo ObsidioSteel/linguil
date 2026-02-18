@@ -28,6 +28,11 @@ env:
     value: "G-DD4VPW4P34"
   - variable: NEXT_PUBLIC_DISCORD_CLIENT_ID
     value: "1473406949792940247"
+  - variable: DISCORD_CLIENT_SECRET
+    value: "DISCORD_CLIENT_SECRET"
+  - variable: DISCORD_REDIRECT_URI
+    value: "https://linguil.app"
+    
 
 headers:
   - source: /.*

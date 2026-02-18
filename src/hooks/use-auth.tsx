@@ -18,6 +18,7 @@ import { useToast } from './use-toast';
 import { getAuthErrorMessage } from '@/lib/auth-actions';
 import { getFirebaseAuth, getFirebaseFirestore, getFirebaseAnalytics } from '@/lib/firebase/firebase';
 import { logEvent as logAnalyticsEvent, setUserProperties, setUserId } from 'firebase/analytics';
+import { handleSignInWithDiscord } from '@/lib/discord-auth';
 
 // Defines the cookie name for the Firebase ID token.
 const FIREBASE_ID_TOKEN_COOKIE = 'firebaseIdToken';
@@ -226,8 +227,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [clearAuthError, handleAuthError, logEvent]);
 
   const signInWithDiscord = useCallback(async (): Promise<void> => {
-    console.log('signInWithDiscord function called');
-  }, []);
+    clearAuthError();
+    try {
+      const userCredential = await handleSignInWithDiscord();
+      const user = userCredential.user;
+      const idTokenResult = await user.getIdTokenResult();
+      const paidStatus = idTokenResult.claims.hasPaid === true;
+      setUser(user);
+      setHasPaid(paidStatus);
+      Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1 });
+      const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser ?? false;
+      logEvent(isNewUser ? 'sign_up' : 'login', { method: 'discord' });
+      setIsAuthDialogOpen(false);
+    } catch (error) {
+      handleAuthError(error);
+    }
+  }, [clearAuthError, handleAuthError, logEvent]);
 
   // Handles email and password sign-in.
   const signInWithEmail = useCallback(
