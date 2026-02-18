@@ -29,6 +29,7 @@ interface AuthContextType {
   authError: string | null; // Stores any authentication-related error messages.
   hasPaid: boolean; // Indicates if the user has a paid subscription.
   signInWithGoogle: () => Promise<void>; // Function to initiate Google sign-in.
+  signInWithDiscord: () => Promise<void>; // Function to initiate Discord sign-in.
   signInWithEmail: (email: string, password: string) => Promise<boolean>; // Function for email and password sign-in.
   signUpWithEmail: (name: string, email: string, password: string) => Promise<boolean>; // Function for email and password sign-up.
   resetPassword: (email: string) => Promise<boolean>; // Function to send a password reset email.
@@ -224,6 +225,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [clearAuthError, handleAuthError, logEvent]);
 
+  const signInWithDiscord = useCallback(async (): Promise<void> => {
+    console.log('signInWithDiscord function called');
+  }, []);
+
   // Handles email and password sign-in.
   const signInWithEmail = useCallback(
     async (email: string, password: string): Promise<boolean> => {
@@ -340,6 +345,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     authError,
     hasPaid,
     signInWithGoogle,
+    signInWithDiscord,
     signInWithEmail,
     signUpWithEmail,
     resetPassword,
