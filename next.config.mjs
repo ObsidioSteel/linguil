@@ -109,7 +109,7 @@ const nextConfig = {
           // Isolates the page from other browser contexts for security.
           {
             key: 'Cross-Origin-Opener-Policy',
-            value: 'same-origin',
+            value: 'same-origin-allow-popups',
           },
           {
             key: 'Cross-Origin-Embedder-Policy',
