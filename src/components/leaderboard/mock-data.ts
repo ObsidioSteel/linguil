@@ -7,6 +7,11 @@ export const CHART_COLORS = [
   'hsl(43 74% 66%)',
   'hsl(350 65% 65%)',
   'hsl(210 35% 55%)',
+  'hsl(161 66% 38%)',
+  'hsl(299 21% 45%)',
+  'hsl(166 15% 60%)',
+  'hsl(95 100% 95%)',
+  'hsl(33 20% 31%)',
 ];
 
 // Mock data for the success rate radial chart.
