@@ -317,7 +317,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
           body: JSON.stringify(scoreDataForSaving),
         });
         if (!res.ok) throw new Error('Server responded with an error');
-      } catch (error) {
+      } catch {
         showErrorToast("Save Failed", "Could not save your score.");
       }
     } else if (user) {
