@@ -1,13 +1,25 @@
 'use client';
 
 import { getDiscordSdk } from '@/lib/discord';
-import type { UserCredential } from 'firebase/auth';
+
+// A simplified user type for the object we will get back from our API
+// when authenticating from within the Discord client.
+export interface DiscordClientUser {
+  uid: string;
+  displayName?: string;
+  photoURL?: string;
+}
+
+// The expected shape of the successful response from our API route
+// when authenticating from within the Discord client.
+export interface DiscordClientAuthResponse {
+  user: DiscordClientUser;
+  hasPaid: boolean;
+}
 
 // Handles the Discord sign-in process.
-// Checks if the app is running inside the Discord client.
-// If so, it uses the Discord Embedded App SDK for authentication.
-// If not, it redirects the user to the standard Discord web OAuth flow.
-export const handleSignInWithDiscord = async (): Promise<UserCredential | null> => {
+// Returns a `DiscordClientAuthResponse` when inside the client, otherwise null.
+export const handleSignInWithDiscord = async (): Promise<DiscordClientAuthResponse | null> => {
   const discordSdk = await getDiscordSdk();
 
   if (discordSdk) {
@@ -22,11 +34,12 @@ export const handleSignInWithDiscord = async (): Promise<UserCredential | null> 
         scope: ['identify', 'guilds.join'],
       });
 
-      // 2. Send the `code` to our backend API to be exchanged for a Firebase custom token.
+      // Send the code to our backend, including a flag to indicate the request
+      // is from the Discord client.
       const response = await fetch('/api/auth/discord', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code, isFromDiscordClient: true }),
       });
 
       if (!response.ok) {
@@ -34,12 +47,9 @@ export const handleSignInWithDiscord = async (): Promise<UserCredential | null> 
         throw new Error(error.message || 'Failed to authenticate with Discord.');
       }
 
-      const { customToken } = await response.json();
-
-      console.log("Received custom token from backend:", customToken);
-      
-      // Returning null because the sign-in on the client is not completed in this flow.
-      return null;
+      // Our backend returns the user object and payment status directly.
+      const authResponse: DiscordClientAuthResponse = await response.json();
+      return authResponse;
 
     } catch (error) {
         console.error("Discord SDK authorization failed:", error);

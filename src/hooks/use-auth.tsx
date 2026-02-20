@@ -18,6 +18,7 @@ import { useToast } from './use-toast';
 import { getAuthErrorMessage } from '@/lib/auth-actions';
 import { getFirebaseAuth, getFirebaseFirestore, getFirebaseAnalytics } from '@/lib/firebase/firebase';
 import { logEvent as logAnalyticsEvent, setUserProperties, setUserId } from 'firebase/analytics';
+import type { DiscordClientAuthResponse } from '@/lib/discord-auth';
 
 // Defines the cookie name for the Firebase ID token.
 const FIREBASE_ID_TOKEN_COOKIE = 'firebaseIdToken';
@@ -246,26 +247,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signInWithDiscord = useCallback(async (): Promise<void> => {
     clearAuthError();
     try {
-      // Dynamically import the handleSignInWithDiscord function only when needed.
       const { handleSignInWithDiscord } = await import('@/lib/discord-auth');
-      const userCredential = await handleSignInWithDiscord();
-      
-      // If handleSignInWithDiscord returns null, it means a redirect or an SDK action is in progress.
-      if (!userCredential) return;
+      const authResponse = await handleSignInWithDiscord();
 
-      const user = userCredential.user;
-      const idTokenResult = await user.getIdTokenResult();
-      const paidStatus = idTokenResult.claims.hasPaid === true;
-      setUser(user);
-      setHasPaid(paidStatus);
-      Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1 });
-      const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser ?? false;
-      logEvent(isNewUser ? 'sign_up' : 'login', { method: 'discord' });
-      setIsAuthDialogOpen(false);
+      if (authResponse && 'user' in authResponse) {
+        setUser(authResponse.user as User);
+        setHasPaid(authResponse.hasPaid);
+        setIsAuthDialogOpen(false);
+      } 
+
     } catch (error) {
       handleAuthError(error);
     }
-  }, [clearAuthError,handleAuthError, logEvent]);
+  }, [clearAuthError, handleAuthError, logEvent]);
 
   const signInWithCustomToken = useCallback(
     async (token: string): Promise<void> => {

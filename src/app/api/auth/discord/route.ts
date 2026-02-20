@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   const auth = getAuth();
 
   try {
-    const { code, access_token: directAccessToken } = await req.json();
+    const { code, access_token: directAccessToken, isFromDiscordClient } = await req.json();
     let accessToken: string;
 
     if (directAccessToken) {
@@ -59,14 +59,14 @@ export async function POST(req: NextRequest) {
     const { id: discordId, username, avatar } = discordUser;
     const photoURL = avatar ? `https://cdn.discordapp.com/avatars/${discordId}/${avatar}.png` : undefined;
 
-    let customToken: string;
+    let uid: string;
 
     try {
       // 3. Check if the user already exists in Firebase Auth.
       const userRecord = await auth.getUser(discordId);
       // If user exists, update their profile and mint a token.
       await auth.updateUser(userRecord.uid, { displayName: username, photoURL });
-      customToken = await auth.createCustomToken(userRecord.uid);
+      uid = userRecord.uid;
     } catch (error: any) {
       if (error.code === 'auth/user-not-found') {
         // 4. If user does not exist, create them in Firebase Auth.
@@ -78,15 +78,28 @@ export async function POST(req: NextRequest) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ uid: newUserRecord.uid, displayName: username, photoURL }),
         });
-        customToken = await auth.createCustomToken(newUserRecord.uid);
+        uid = newUserRecord.uid;
       } else {
         // Handle other Firebase Admin SDK errors.
         throw error;
       }
     }
 
-    // 6. Return the custom token to the client.
-    return new NextResponse(JSON.stringify({ customToken }), { status: 200 });
+    // 6. Return either the full user object or a custom token.
+    if (isFromDiscordClient) {
+        const userRecord = await auth.getUser(uid);
+        const user = {
+            uid: userRecord.uid,
+            displayName: userRecord.displayName,
+            photoURL: userRecord.photoURL,
+
+        }
+        const hasPaid = (userRecord.customClaims || {}).hasPaid === true;
+        return new NextResponse(JSON.stringify({ user, hasPaid }), { status: 200 });
+    } else {
+        const customToken = await auth.createCustomToken(uid);
+        return new NextResponse(JSON.stringify({ customToken }), { status: 200 });
+    }
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown server error occurred.';
