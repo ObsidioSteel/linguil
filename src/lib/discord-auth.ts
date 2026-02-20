@@ -1,8 +1,7 @@
 'use client';
 
 import { getDiscordSdk } from '@/lib/discord';
-import { getFirebaseAuth } from '@/lib/firebase/firebase';
-import { signInWithCustomToken, type UserCredential } from 'firebase/auth';
+import type { UserCredential } from 'firebase/auth';
 
 // Handles the Discord sign-in process.
 // Checks if the app is running inside the Discord client.
