@@ -31,7 +31,7 @@ export const handleSignInWithDiscord = async (): Promise<DiscordClientAuthRespon
         response_type: 'code',
         state: '',
         prompt: 'none',
-        scope: ['identify', 'guilds.join'],
+        scope: ['identify', 'guilds.join', 'rpc.activities.write'],
       });
 
       // Send the code to our backend, including a flag to indicate the request
@@ -60,7 +60,7 @@ export const handleSignInWithDiscord = async (): Promise<DiscordClientAuthRespon
     authUrl.searchParams.set('client_id', process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!);
     authUrl.searchParams.set('redirect_uri', process.env.NEXT_PUBLIC_DISCORD_REDIRECT_URI!);
     authUrl.searchParams.set('response_type', 'code');
-    authUrl.searchParams.set('scope', 'identify guilds.join');
+    authUrl.searchParams.set('scope', 'identify guilds.join rpc.activities.write');
 
     window.location.href = authUrl.toString();
 

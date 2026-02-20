@@ -20,6 +20,7 @@ import { getFirebaseAuth, getFirebaseFirestore, getFirebaseAnalytics } from '@/l
 import { logEvent as logAnalyticsEvent, setUserProperties, setUserId } from 'firebase/analytics';
 import { getDiscordSdk } from '@/lib/discord';
 import { setLinguilActivity } from '@/lib/discord-activity';
+import type { DiscordClientUser, DiscordClientAuthResponse } from '@/lib/discord-auth';
 
 // Defines the cookie name for the Firebase ID token.
 const FIREBASE_ID_TOKEN_COOKIE = 'firebaseIdToken';
@@ -27,6 +28,7 @@ const FIREBASE_ID_TOKEN_COOKIE = 'firebaseIdToken';
 // Defines the shape of the authentication context.
 interface AuthContextType {
   user: User | null; // The current authenticated Firebase user.
+  discordClientUser: DiscordClientUser | null; // User data from Discord client flow.
   loading: boolean; // Indicates if authentication status is being checked.
   authError: string | null; // Stores any authentication-related error messages.
   hasPaid: boolean; // Indicates if the user has a paid subscription.
@@ -50,6 +52,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // State for the current user.
   const [user, setUser] = useState<User | null>(null);
+  const [discordClientUser, setDiscordClientUser] = useState<DiscordClientUser | null>(null);
   // State for loading status.
   const [loading, setLoading] = useState(true);
   // State for authentication errors.
@@ -69,11 +72,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // State to check if the app is inside the Discord client.
   const [isInsideDiscord, setIsInsideDiscord] = useState(false);
 
-  // Check if we are inside the Discord client iframe.
+  // Check if we are inside the Discord client iframe and set activity.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('frame_id')) {
       setIsInsideDiscord(true);
+      getDiscordSdk().then(sdk => {
+        if (sdk) {
+          setLinguilActivity(sdk);
+        }
+      });
     }
   }, []);
 
@@ -115,33 +123,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     []
   );
 
-  const signInWithCustomToken = useCallback(
-    async (token: string): Promise<void> => {
-      clearAuthError();
-      try {
-        const auth = await getFirebaseAuth();
-        const userCredential = await firebaseSignInWithCustomToken(auth, token);
-        const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser ?? false;
-        logEvent(isNewUser ? 'sign_up' : 'login', { method: 'discord' }); // Log as Discord sign-in
-        setIsAuthDialogOpen(false);
-
-        if (isInsideDiscord) {
-            const discordSdk = await getDiscordSdk();
-            if (discordSdk) {
-                setLinguilActivity(discordSdk);
-            }
-        }
-      } catch (error) {
-        handleAuthError(error);
-      }
-    },
-    [isInsideDiscord, clearAuthError, handleAuthError, logEvent]
-  );
+  const signInWithCustomToken = useCallback(async (token: string): Promise<void> => {
+    clearAuthError();
+    try {
+      const auth = await getFirebaseAuth();
+      const userCredential = await firebaseSignInWithCustomToken(auth, token);
+      const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser ?? false;
+      logEvent(isNewUser ? 'sign_up' : 'login', { method: 'discord' });
+      setIsAuthDialogOpen(false);
+    } catch (error) {
+      handleAuthError(error);
+    }
+  }, [clearAuthError, handleAuthError, logEvent]);
 
   // Handles user authentication state changes.
   useEffect(() => {
+    // When inside Discord, we use our proxy and skip client-side Firebase auth.
+    if (isInsideDiscord) {
+        setLoading(false);
+        return;
+    }
     let unsubscribe: (() => void) | undefined;
-
     const initializeAuth = async () => {
       try {
         const auth = await getFirebaseAuth();
@@ -157,18 +159,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser(currentUser);
             setHasPaid(paidStatus);
             Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1 });
-
             try {
               const analytics = await getFirebaseAnalytics();
-              if (analytics && !isInsideDiscord) {
-                // Set user properties for analytics.
+              if (analytics) {
                 setUserId(analytics, currentUser.uid);
                 setUserProperties(analytics, { has_paid: paidStatus });
               }
-            } catch {
-              // Analytics errors are not critical to the user, so we can ignore them.
-            }
-
+            } catch {}
           } else {
             // User is signed out.
             setUser(null);
@@ -184,7 +181,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false);
       }
     };
-
     initializeAuth();
 
     // Cleanup the listener on component unmount.
@@ -262,14 +258,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [clearAuthError, handleAuthError, logEvent]);
 
+  // Handles Discord Sign in for both browser and Discord Client contexts
   const signInWithDiscord = useCallback(async (): Promise<void> => {
     clearAuthError();
     try {
         const { handleSignInWithDiscord } = await import('@/lib/discord-auth');
         const response = await handleSignInWithDiscord();
 
-        if (response && 'token' in response && typeof response.token === 'string') {
-            await signInWithCustomToken(response.token);
+        if (!response) return;
+
+        if ('customToken' in response && typeof response.customToken === 'string') {
+            // Standard browser flow: sign in with the custom token.
+            await signInWithCustomToken(response.customToken);
+        } else if ('user' in response) {
+            // Discord client flow: set the user data directly.
+            const clientAuth = response as DiscordClientAuthResponse;
+            setDiscordClientUser(clientAuth.user);
+            setHasPaid(clientAuth.hasPaid);
         }
 
     } catch (error) {
@@ -363,6 +368,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Run all registered cleanup functions.
       signOutCleanup.current.forEach((cleanup) => cleanup());
       signOutCleanup.current = [];
+      setDiscordClientUser(null); // Clear the Discord client user on logout.
       const { handleSignOut } = await import('@/lib/auth-actions');
       await handleSignOut();
     } catch {
@@ -389,6 +395,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // The value provided to the AuthContext.
   const value = {
     user,
+    discordClientUser,
     loading,
     authError,
     hasPaid,

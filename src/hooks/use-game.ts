@@ -101,7 +101,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 export const useGame = (initialDailyWord: RawDailyData | null = null) => {
   const router = useRouter();
   const { toast } = useToast();
-  const { user, loading: authLoading, hasPaid, addSignOutCleanup, removeSignOutCleanup } = useAuth();
+  const { user, discordClientUser, loading: authLoading, hasPaid, addSignOutCleanup, removeSignOutCleanup } = useAuth();
   const [state, dispatch] = useReducer(gameReducer, initialState);
 
   // Shows an error toast.
@@ -123,9 +123,11 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
 
   // Fetches the user's score for a specific day.
   const getUserDailyScore = useCallback(async (wordIdentifier: string) => {
-    if (!user) return null;
+    const activeUser = user || discordClientUser;
+    if (!activeUser) return null;
+
     const db = await getFirebaseFirestore();
-    const dailyScoresRef = collection(db, 'users', user.uid, 'dailyScores');
+    const dailyScoresRef = collection(db, 'users', activeUser.uid, 'dailyScores');
     const q = query(dailyScoresRef, where('wordIdentifier', '==', wordIdentifier));
     const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {
@@ -133,7 +135,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
       return { score: doc.score, totalQuestions: doc.totalQuestions };
     }
     return null;
-  }, [user]);
+  }, [user, discordClientUser]);
 
   // Loads data for the daily online game.
   const loadDailyData = useCallback(async () => {
@@ -148,12 +150,13 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
       const processedData = { date, languageStats, questions, word, audioUrl };
 
       let finalScore: DailyScore | null = null;
+      const activeUser = user || discordClientUser;
 
-      if (user) {
+      if (activeUser) {
         const pendingScore = getPendingScore();
         if (pendingScore?.wordIdentifier === date) {
           const db = await getFirebaseFirestore();
-          await saveUserScoreToDb(db, user, pendingScore.score, pendingScore.totalQuestions, date);
+          await saveUserScoreToDb(db, { uid: activeUser.uid } as any, pendingScore.score, pendingScore.totalQuestions, date);
           finalScore = { score: pendingScore.score, totalQuestions: pendingScore.totalQuestions };
           sessionStorage.removeItem(PENDING_SCORE_KEY);
         } else {
@@ -166,7 +169,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
       showErrorToast("Error loading game", "Failed to load game data");
       dispatch({ type: 'DATA_LOAD_ERROR' });
     }
-  }, [initialDailyWord, getUserDailyScore, user, showErrorToast]);
+  }, [initialDailyWord, getUserDailyScore, user, discordClientUser, showErrorToast]);
 
   // Loads data for an offline game.
   const loadOfflineGame = useCallback(async (isNew: boolean = false) => {
@@ -301,15 +304,31 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
     const scoreData = { score: finalScore, totalQuestions: state.data.questions.length };
     dispatch({ type: 'FINISH_QUIZ', payload: scoreData });
 
-    if (user && !state.isOffline) {
-      // If online, save the score to the database.
+    if (state.isOffline) return;
+
+    const scoreDataForSaving = { ...scoreData, wordIdentifier: state.data.date };
+
+    if (discordClientUser) {
+      // If in Discord Client, use the API proxy to save the score.
+      try {
+        const res = await fetch('/api/game/score', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(scoreDataForSaving),
+        });
+        if (!res.ok) throw new Error('Server responded with an error');
+      } catch (error) {
+        showErrorToast("Save Failed", "Could not save your score.");
+      }
+    } else if (user) {
+      // If online in browser, save the score to the database directly.
       const db = await getFirebaseFirestore();
       saveUserScoreToDb(db, user, finalScore, state.data.questions.length, state.data.date);
-    } else if (!user && !state.isOffline) {
+    } else {
       // If logged out, store score in session storage to save later.
-      sessionStorage.setItem(PENDING_SCORE_KEY, JSON.stringify({ ...scoreData, wordIdentifier: state.data.date }));
+      sessionStorage.setItem(PENDING_SCORE_KEY, JSON.stringify(scoreDataForSaving));
     }
-  }, [user, state.data, state.isOffline]);
+  }, [user, discordClientUser, state.data, state.isOffline, showErrorToast]);
 
   // Switches between online and offline game modes.
   const handleModeToggle = (isOffline: boolean) => {

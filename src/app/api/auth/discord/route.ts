@@ -1,7 +1,8 @@
 // Handles the entire Discord authentication process.
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import * as admin from "firebase-admin";
-import { getAuth } from 'firebase-admin/auth';
+import { getAuth, UserRecord } from 'firebase-admin/auth';
 
 // Initialize Firebase Admin SDK if not already initialized.
 if (!admin.apps.length) {
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
     let accessToken: string;
 
     if (directAccessToken) {
-      // Use the access token provided directly from the SDK.
+      // Use the access token provided directly from the Discord SDK.
       accessToken = directAccessToken;
     } else if (code) {
       // 1. Exchange the authorization code for an access token from Discord.
@@ -59,42 +60,57 @@ export async function POST(req: NextRequest) {
     const { id: discordId, username, avatar } = discordUser;
     const photoURL = avatar ? `https://cdn.discordapp.com/avatars/${discordId}/${avatar}.png` : undefined;
 
-    let uid: string;
+    let userRecord: UserRecord;
 
     try {
       // 3. Check if the user already exists in Firebase Auth.
-      const userRecord = await auth.getUser(discordId);
-      // If user exists, update their profile and mint a token.
+      userRecord = await auth.getUser(discordId);
       await auth.updateUser(userRecord.uid, { displayName: username, photoURL });
-      uid = userRecord.uid;
     } catch (error: any) {
       if (error.code === 'auth/user-not-found') {
         // 4. If user does not exist, create them in Firebase Auth.
         const newUserRecord = await auth.createUser({ uid: discordId, displayName: username, photoURL });
 
-        // 5. Call existing Cloud Function to create the user documents.
+        // 5. Call Cloud Function to create user documents and set custom claims.
         await fetch(CREATE_USER_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ uid: newUserRecord.uid, displayName: username, photoURL }),
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uid: newUserRecord.uid, displayName: username, photoURL }),
         });
-        
-        // Mitigate a race condition by re-fetching the user record before creating the token.
-        const userRecord = await auth.getUser(newUserRecord.uid);
-        uid = userRecord.uid;
+
+        // Re-fetch the user record to get all properties, including custom claims.
+        userRecord = await auth.getUser(newUserRecord.uid);
       } else {
         // Handle other Firebase Admin SDK errors.
         throw error;
       }
     }
 
-    // 6. Return either a custom token for the Discord client or for the browser.
+    // 6. Handle the response based on the client type.
     if (isFromDiscordClient) {
-        const customToken = await auth.createCustomToken(uid);
-        return new NextResponse(JSON.stringify({ token: customToken }), { status: 200 });
+      // For the Discord client: Set a secure session cookie and return user data.
+      const { uid, displayName } = userRecord;
+      const finalPhotoURL = userRecord.photoURL || photoURL;
+      const hasPaid = userRecord.customClaims?.['hasPaid'] === true;
+
+      // Set a secure, http-only cookie for session management.
+      const cookieStore = await cookies();
+      cookieStore.set('session', uid, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7, // 1 week
+      });
+
+      return new NextResponse(JSON.stringify({
+        user: { uid, displayName, photoURL: finalPhotoURL },
+        hasPaid,
+      }), { status: 200 });
     } else {
-        const customToken = await auth.createCustomToken(uid);
-        return new NextResponse(JSON.stringify({ customToken }), { status: 200 });
+      // For a standard browser: return a custom token for client-side sign-in.
+      const customToken = await auth.createCustomToken(userRecord.uid);
+      return new NextResponse(JSON.stringify({ customToken }), { status: 200 });
     }
 
   } catch (error) {

@@ -1,0 +1,65 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import * as admin from 'firebase-admin';
+
+// Initialize Firebase Admin SDK if not already initialized.
+if (admin.apps.length === 0) {
+  admin.initializeApp();
+}
+
+// Interface for the expected score data in the request body.
+interface ScoreData {
+  score: number;
+  totalQuestions: number;
+  wordIdentifier: string;
+}
+
+export async function POST(req: NextRequest) {
+  const db = admin.firestore();
+
+  try {
+    // 1. Authenticate the user from the secure, http-only session cookie.
+    const cookieStore = await cookies();
+    const session = cookieStore.get('session');
+    if (!session?.value) {
+      return new NextResponse(JSON.stringify({ message: 'Unauthorized' }), { status: 401 });
+    }
+    const uid = session.value;
+
+    // 2. Validate the request body against the required structure.
+    const body = await req.json();
+    const { score, totalQuestions, wordIdentifier } = body as ScoreData;
+
+    if (typeof score !== 'number' || typeof totalQuestions !== 'number' || !wordIdentifier) {
+      return new NextResponse(JSON.stringify({ message: 'Invalid score data payload' }), { status: 400 });
+    }
+
+    // 3. Define the document reference for a user's daily score.
+    const dailyScoreDocRef = db.collection('users').doc(uid).collection('dailyScores').doc(wordIdentifier);
+
+    // 4. Check if a score has already been saved for this identifier.
+    const docSnap = await dailyScoreDocRef.get();
+    if (docSnap.exists) {
+        console.log(`Score for ${wordIdentifier} has already been saved for user ${uid}.`);
+        return new NextResponse(JSON.stringify({ message: 'Score already saved' }), { status: 200 });
+    }
+
+    // 5. If no score exists, prepare the new score record.
+    const scoreRecord = {
+      wordIdentifier,
+      score,
+      totalQuestions,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    // 6. Save the new score record.
+    await dailyScoreDocRef.set(scoreRecord);
+
+    return new NextResponse(JSON.stringify({ message: 'Score saved successfully' }), { status: 201 });
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'An unknown server error occurred.';
+    console.error(`[API/GAME/SCORE] Error saving score for user: ${errorMessage}`);
+    return new NextResponse(JSON.stringify({ message: 'Error saving score' }), { status: 500 });
+  }
+}
