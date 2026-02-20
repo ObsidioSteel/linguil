@@ -18,7 +18,6 @@ import { useToast } from './use-toast';
 import { getAuthErrorMessage } from '@/lib/auth-actions';
 import { getFirebaseAuth, getFirebaseFirestore, getFirebaseAnalytics } from '@/lib/firebase/firebase';
 import { logEvent as logAnalyticsEvent, setUserProperties, setUserId } from 'firebase/analytics';
-import type { DiscordClientAuthResponse } from '@/lib/discord-auth';
 
 // Defines the cookie name for the Firebase ID token.
 const FIREBASE_ID_TOKEN_COOKIE = 'firebaseIdToken';
@@ -259,7 +258,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       handleAuthError(error);
     }
-  }, [clearAuthError, handleAuthError, logEvent]);
+  }, [clearAuthError, handleAuthError]);
 
   const signInWithCustomToken = useCallback(
     async (token: string): Promise<void> => {
