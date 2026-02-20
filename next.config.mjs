@@ -22,6 +22,7 @@ const cspPolicies = {
   'font-src': ["'self'", 'https://fonts.gstatic.com'],
   'connect-src': [
     "'self'",
+    'https://discord.com',
     'https://*.firebaseio.com',
     'wss://*.firebaseio.com',
     'https://*.googleapis.com',
@@ -51,7 +52,15 @@ const cspPolicies = {
     'https://*.linguil.app',
     'https://cdn.discordapp.com',
   ],
-  'frame-src': ["'self'", 'https://*.firebaseapp.com', 'https://*.stripe.com', 'https://accounts.google.com', 'https://linguil.app', 'https://*.linguil.app'],
+  'frame-src': [
+    "'self'", 
+    'https://discord.com',
+    'https://*.firebaseapp.com', 
+    'https://*.stripe.com', 
+    'https://accounts.google.com', 
+    'https://linguil.app', 
+    'https://*.linguil.app'
+  ],
   'media-src': ['https://storage.googleapis.com', 'https://*.linguil.app'],
 };
 
