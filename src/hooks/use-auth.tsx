@@ -9,7 +9,7 @@ import {
   useCallback,
 } from 'react';
 import type { ReactNode, ComponentType } from 'react';
-import { onIdTokenChanged, type User, getAdditionalUserInfo } from 'firebase/auth';
+import { onIdTokenChanged, type User, getAdditionalUserInfo, signInWithCustomToken as firebaseSignInWithCustomToken } from 'firebase/auth';
 import { doc, onSnapshot, type Firestore } from 'firebase/firestore';
 import type { AuthDialogProps } from '@/components/auth/AuthDialog';
 import Cookies from 'js-cookie';
@@ -18,7 +18,6 @@ import { useToast } from './use-toast';
 import { getAuthErrorMessage } from '@/lib/auth-actions';
 import { getFirebaseAuth, getFirebaseFirestore, getFirebaseAnalytics } from '@/lib/firebase/firebase';
 import { logEvent as logAnalyticsEvent, setUserProperties, setUserId } from 'firebase/analytics';
-import { handleSignInWithDiscord } from '@/lib/discord-auth';
 
 // Defines the cookie name for the Firebase ID token.
 const FIREBASE_ID_TOKEN_COOKIE = 'firebaseIdToken';
@@ -31,6 +30,7 @@ interface AuthContextType {
   hasPaid: boolean; // Indicates if the user has a paid subscription.
   signInWithGoogle: () => Promise<void>; // Function to initiate Google sign-in.
   signInWithDiscord: () => Promise<void>; // Function to initiate Discord sign-in.
+  signInWithCustomToken: (token: string) => Promise<void>; // Function to sign in with a custom token.
   signInWithEmail: (email: string, password: string) => Promise<boolean>; // Function for email and password sign-in.
   signUpWithEmail: (name: string, email: string, password: string) => Promise<boolean>; // Function for email and password sign-up.
   resetPassword: (email: string) => Promise<boolean>; // Function to send a password reset email.
@@ -229,7 +229,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signInWithDiscord = useCallback(async (): Promise<void> => {
     clearAuthError();
     try {
+      // Dynamically import the handleSignInWithDiscord function only when needed.
+      const { handleSignInWithDiscord } = await import('@/lib/discord-auth');
       const userCredential = await handleSignInWithDiscord();
+      if (!userCredential) return;
+
       const user = userCredential.user;
       const idTokenResult = await user.getIdTokenResult();
       const paidStatus = idTokenResult.claims.hasPaid === true;
@@ -242,7 +246,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       handleAuthError(error);
     }
-  }, [clearAuthError, handleAuthError, logEvent]);
+  }, [clearAuthError,handleAuthError, logEvent]);
+
+  const signInWithCustomToken = useCallback(
+    async (token: string): Promise<void> => {
+      clearAuthError();
+      try {
+        const auth = await getFirebaseAuth();
+        const userCredential = await firebaseSignInWithCustomToken(auth, token);
+        const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser ?? false;
+        logEvent(isNewUser ? 'sign_up' : 'login', { method: 'discord' }); // Log as Discord sign-in
+        setIsAuthDialogOpen(false);
+      } catch (error) {
+        handleAuthError(error);
+      }
+    },
+    [clearAuthError, handleAuthError, logEvent]
+  );
 
   // Handles email and password sign-in.
   const signInWithEmail = useCallback(
@@ -361,6 +381,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     hasPaid,
     signInWithGoogle,
     signInWithDiscord,
+    signInWithCustomToken,
     signInWithEmail,
     signUpWithEmail,
     resetPassword,

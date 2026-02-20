@@ -3,43 +3,52 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as admin from "firebase-admin";
 import { getAuth } from 'firebase-admin/auth';
 
+// Initialize Firebase Admin SDK if not already initialized.
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
+
 // The URL of the Firebase function to create a new user's database records.
 const CREATE_USER_URL = process.env.NEXT_PUBLIC_FIREBASE_CREATE_USER_FUNCTION_URL!;
 
 export async function POST(req: NextRequest) {
-  await admin.initializeApp();
   const auth = getAuth();
 
   try {
-    const { code } = await req.json();
-    if (!code) {
-      return new NextResponse(JSON.stringify({ message: 'Authorization code not provided.' }), { status: 400 });
+    const { code, access_token: directAccessToken } = await req.json();
+    let accessToken: string;
+
+    if (directAccessToken) {
+      // Use the access token provided directly from the SDK.
+      accessToken = directAccessToken;
+    } else if (code) {
+      // 1. Exchange the authorization code for an access token from Discord.
+      const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!,
+          client_secret: process.env.DISCORD_CLIENT_SECRET!,
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: process.env.DISCORD_REDIRECT_URI!,
+        }),
+      });
+
+      if (!tokenResponse.ok) {
+        const error = await tokenResponse.json();
+        console.error('Discord token exchange failed:', error);
+        return new NextResponse(JSON.stringify({ message: 'Failed to authenticate with Discord.' }), { status: 500 });
+      }
+      const tokenData = await tokenResponse.json();
+      accessToken = tokenData.access_token;
+    } else {
+      return new NextResponse(JSON.stringify({ message: 'Authorization code or access token not provided.' }), { status: 400 });
     }
-
-    // 1. Exchange the authorization code for an access token from Discord.
-    const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!,
-        client_secret: process.env.DISCORD_CLIENT_SECRET!,
-        grant_type: 'authorization_code',
-        code,
-        redirect_uri: process.env.DISCORD_REDIRECT_URI!,
-      }),
-    });
-
-    if (!tokenResponse.ok) {
-      const error = await tokenResponse.json();
-      console.error('Discord token exchange failed:', error);
-      return new NextResponse(JSON.stringify({ message: 'Failed to authenticate with Discord.' }), { status: 500 });
-    }
-
-    const { access_token } = await tokenResponse.json();
 
     // 2. Use the access token to get the user's profile from Discord.
     const userResponse = await fetch('https://discord.com/api/users/@me', {
-      headers: { Authorization: `Bearer ${access_token}` },
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
 
     if (!userResponse.ok) {
@@ -65,11 +74,10 @@ export async function POST(req: NextRequest) {
 
         // 5. Call existing Cloud Function to create the user documents.
         await fetch(CREATE_USER_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uid: newUserRecord.uid, displayName: username, photoURL }),
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uid: newUserRecord.uid, displayName: username, photoURL }),
         });
-
         customToken = await auth.createCustomToken(newUserRecord.uid);
       } else {
         // Handle other Firebase Admin SDK errors.
