@@ -64,9 +64,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   // Ref to hold the Firestore instance.
   const dbRef = useRef<Firestore | null>(null);
+  // State to check if the app is inside the Discord client.
+  const [isInsideDiscord, setIsInsideDiscord] = useState(false);
+
+  // Check if we are inside the Discord client iframe.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('frame_id')) {
+      setIsInsideDiscord(true);
+    }
+  }, []);
 
   // Logs analytics events.
   const logEvent = useCallback(async (eventName: string, params = {}) => {
+    if (isInsideDiscord) return;
     try {
       const analytics = await getFirebaseAnalytics();
       if (analytics) {
@@ -75,7 +86,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch {
       // This error is not critical to the user, so we can ignore it.
     }
-  }, []);
+  }, [isInsideDiscord]);
 
   // Handles and formats authentication errors.
   const handleAuthError = useCallback((error: unknown): void => {
@@ -104,6 +115,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Handles user authentication state changes.
   useEffect(() => {
+    // If we're in Discord, don't initialize the Firebase client-side SDK.
+    if (isInsideDiscord) {
+      setLoading(false);
+      return;
+    }
+
     let unsubscribe: (() => void) | undefined;
 
     const initializeAuth = async () => {
@@ -157,11 +174,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         unsubscribe();
       }
     };
-  }, [logEvent, handleAuthError]);
+  }, [isInsideDiscord, logEvent, handleAuthError]);
 
   // Listens for real-time changes to the user's payment status in Firestore.
   useEffect(() => {
-    if (!user) return;
+    if (!user || isInsideDiscord) return;
 
     let unsubscribe: (() => void) | undefined;
 
@@ -204,7 +221,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         removeSignOutCleanup(unsubscribe);
       }
     };
-  }, [user, hasPaid, addSignOutCleanup, removeSignOutCleanup]);
+  }, [user, hasPaid, isInsideDiscord, addSignOutCleanup, removeSignOutCleanup]);
 
   // Handles Google sign-in.
   const signInWithGoogle = useCallback(async (): Promise<void> => {
@@ -232,6 +249,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Dynamically import the handleSignInWithDiscord function only when needed.
       const { handleSignInWithDiscord } = await import('@/lib/discord-auth');
       const userCredential = await handleSignInWithDiscord();
+      
+      // If handleSignInWithDiscord returns null, it means a redirect or an SDK action is in progress.
       if (!userCredential) return;
 
       const user = userCredential.user;
@@ -250,6 +269,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signInWithCustomToken = useCallback(
     async (token: string): Promise<void> => {
+      if (isInsideDiscord) {
+          console.log('signInWithCustomToken called inside Discord with token:', token);
+          return;
+      } // Cannot use Firebase custom token in Discord client
       clearAuthError();
       try {
         const auth = await getFirebaseAuth();
@@ -261,7 +284,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         handleAuthError(error);
       }
     },
-    [clearAuthError, handleAuthError, logEvent]
+    [isInsideDiscord, clearAuthError, handleAuthError, logEvent]
   );
 
   // Handles email and password sign-in.

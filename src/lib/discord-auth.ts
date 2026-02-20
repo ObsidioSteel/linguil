@@ -12,13 +12,22 @@ export const handleSignInWithDiscord = async (): Promise<UserCredential | null> 
   const discordSdk = await getDiscordSdk();
 
   if (discordSdk) {
+    // Flow for when the app is embedded inside the Discord client.
     try {
-      const { access_token } = await discordSdk.commands.authenticate({});
+      // 1. Authorize with the Discord client to get a temporary `code`.
+      const { code } = await discordSdk.commands.authorize({
+        client_id: process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!,
+        response_type: 'code',
+        state: '',
+        prompt: 'none',
+        scope: ['identify', 'guilds.join'],
+      });
 
+      // 2. Send the `code` to our backend API to be exchanged for a Firebase custom token.
       const response = await fetch('/api/auth/discord', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token }),
+        body: JSON.stringify({ code }),
       });
 
       if (!response.ok) {
@@ -27,11 +36,14 @@ export const handleSignInWithDiscord = async (): Promise<UserCredential | null> 
       }
 
       const { customToken } = await response.json();
-      const auth = await getFirebaseAuth();
-      return await signInWithCustomToken(auth, customToken);
+
+      console.log("Received custom token from backend:", customToken);
+      
+      // Returning null because the sign-in on the client is not completed in this flow.
+      return null;
 
     } catch (error) {
-        console.error("Discord SDK authentication failed:", error);
+        console.error("Discord SDK authorization failed:", error);
         return null;
     }
   } else {
@@ -39,7 +51,7 @@ export const handleSignInWithDiscord = async (): Promise<UserCredential | null> 
     authUrl.searchParams.set('client_id', process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!);
     authUrl.searchParams.set('redirect_uri', process.env.NEXT_PUBLIC_DISCORD_REDIRECT_URI!);
     authUrl.searchParams.set('response_type', 'code');
-    authUrl.searchParams.set('scope', 'identify guilds');
+    authUrl.searchParams.set('scope', 'identify guilds.join');
 
     window.location.href = authUrl.toString();
 
