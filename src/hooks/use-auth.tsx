@@ -18,6 +18,8 @@ import { useToast } from './use-toast';
 import { getAuthErrorMessage } from '@/lib/auth-actions';
 import { getFirebaseAuth, getFirebaseFirestore, getFirebaseAnalytics } from '@/lib/firebase/firebase';
 import { logEvent as logAnalyticsEvent, setUserProperties, setUserId } from 'firebase/analytics';
+import { getDiscordSdk } from '@/lib/discord';
+import { setLinguilActivity } from '@/lib/discord-activity';
 
 // Defines the cookie name for the Firebase ID token.
 const FIREBASE_ID_TOKEN_COOKIE = 'firebaseIdToken';
@@ -113,14 +115,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     []
   );
 
+  const signInWithCustomToken = useCallback(
+    async (token: string): Promise<void> => {
+      clearAuthError();
+      try {
+        const auth = await getFirebaseAuth();
+        const userCredential = await firebaseSignInWithCustomToken(auth, token);
+        const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser ?? false;
+        logEvent(isNewUser ? 'sign_up' : 'login', { method: 'discord' }); // Log as Discord sign-in
+        setIsAuthDialogOpen(false);
+
+        if (isInsideDiscord) {
+            const discordSdk = await getDiscordSdk();
+            if (discordSdk) {
+                setLinguilActivity(discordSdk);
+            }
+        }
+      } catch (error) {
+        handleAuthError(error);
+      }
+    },
+    [isInsideDiscord, clearAuthError, handleAuthError, logEvent]
+  );
+
   // Handles user authentication state changes.
   useEffect(() => {
-    // If we're in Discord, don't initialize the Firebase client-side SDK.
-    if (isInsideDiscord) {
-      setLoading(false);
-      return;
-    }
-
     let unsubscribe: (() => void) | undefined;
 
     const initializeAuth = async () => {
@@ -141,7 +160,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             try {
               const analytics = await getFirebaseAnalytics();
-              if (analytics) {
+              if (analytics && !isInsideDiscord) {
                 // Set user properties for analytics.
                 setUserId(analytics, currentUser.uid);
                 setUserProperties(analytics, { has_paid: paidStatus });
@@ -174,11 +193,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         unsubscribe();
       }
     };
-  }, [isInsideDiscord, logEvent, handleAuthError]);
+  }, [isInsideDiscord, handleAuthError]);
 
   // Listens for real-time changes to the user's payment status in Firestore.
   useEffect(() => {
-    if (!user || isInsideDiscord) return;
+    if (!user) return;
 
     let unsubscribe: (() => void) | undefined;
 
@@ -198,7 +217,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               setHasPaid(serverHasPaid);
               // Update user properties in analytics.
               getFirebaseAnalytics().then(analytics => {
-                if(analytics) setUserProperties(analytics, { has_paid: serverHasPaid });
+                if(analytics && !isInsideDiscord) setUserProperties(analytics, { has_paid: serverHasPaid });
               })
             }
           }
@@ -246,39 +265,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signInWithDiscord = useCallback(async (): Promise<void> => {
     clearAuthError();
     try {
-      const { handleSignInWithDiscord } = await import('@/lib/discord-auth');
-      const authResponse = await handleSignInWithDiscord();
+        const { handleSignInWithDiscord } = await import('@/lib/discord-auth');
+        const response = await handleSignInWithDiscord();
 
-      if (authResponse && 'user' in authResponse) {
-        setUser(authResponse.user as User);
-        setHasPaid(authResponse.hasPaid);
-        setIsAuthDialogOpen(false);
-      } 
+        if (response && 'token' in response && typeof response.token === 'string') {
+            await signInWithCustomToken(response.token);
+        }
 
     } catch (error) {
-      handleAuthError(error);
-    }
-  }, [clearAuthError, handleAuthError]);
-
-  const signInWithCustomToken = useCallback(
-    async (token: string): Promise<void> => {
-      if (isInsideDiscord) {
-          console.log('signInWithCustomToken called inside Discord with token:', token);
-          return;
-      } // Cannot use Firebase custom token in Discord client
-      clearAuthError();
-      try {
-        const auth = await getFirebaseAuth();
-        const userCredential = await firebaseSignInWithCustomToken(auth, token);
-        const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser ?? false;
-        logEvent(isNewUser ? 'sign_up' : 'login', { method: 'discord' }); // Log as Discord sign-in
-        setIsAuthDialogOpen(false);
-      } catch (error) {
         handleAuthError(error);
-      }
-    },
-    [isInsideDiscord, clearAuthError, handleAuthError, logEvent]
-  );
+    }
+  }, [clearAuthError, handleAuthError, signInWithCustomToken]);
 
   // Handles email and password sign-in.
   const signInWithEmail = useCallback(

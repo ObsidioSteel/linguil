@@ -78,24 +78,20 @@ export async function POST(req: NextRequest) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ uid: newUserRecord.uid, displayName: username, photoURL }),
         });
-        uid = newUserRecord.uid;
+        
+        // Mitigate a race condition by re-fetching the user record before creating the token.
+        const userRecord = await auth.getUser(newUserRecord.uid);
+        uid = userRecord.uid;
       } else {
         // Handle other Firebase Admin SDK errors.
         throw error;
       }
     }
 
-    // 6. Return either the full user object or a custom token.
+    // 6. Return either a custom token for the Discord client or for the browser.
     if (isFromDiscordClient) {
-        const userRecord = await auth.getUser(uid);
-        const user = {
-            uid: userRecord.uid,
-            displayName: userRecord.displayName,
-            photoURL: userRecord.photoURL,
-
-        }
-        const hasPaid = (userRecord.customClaims || {}).hasPaid === true;
-        return new NextResponse(JSON.stringify({ user, hasPaid }), { status: 200 });
+        const customToken = await auth.createCustomToken(uid);
+        return new NextResponse(JSON.stringify({ token: customToken }), { status: 200 });
     } else {
         const customToken = await auth.createCustomToken(uid);
         return new NextResponse(JSON.stringify({ customToken }), { status: 200 });
