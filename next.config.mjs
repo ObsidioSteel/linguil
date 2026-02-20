@@ -49,6 +49,7 @@ const cspPolicies = {
     'https://*.googletagmanager.com',
     'https://www.google.com',
     'https://*.linguil.app',
+    'https://cdn.discordapp.com',
   ],
   'frame-src': ["'self'", 'https://*.firebaseapp.com', 'https://*.stripe.com', 'https://accounts.google.com', 'https://linguil.app', 'https://*.linguil.app'],
   'media-src': ['https://storage.googleapis.com', 'https://*.linguil.app'],
