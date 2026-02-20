@@ -52,6 +52,7 @@ const cspPolicies = {
     'https://*.linguil.app',
     'https://cdn.discordapp.com',
   ],
+  'media-src': ['https://storage.googleapis.com', 'https://*.linguil.app'],
   'frame-src': [
     "'self'", 
     'https://discord.com',
@@ -61,7 +62,8 @@ const cspPolicies = {
     'https://linguil.app', 
     'https://*.linguil.app'
   ],
-  'media-src': ['https://storage.googleapis.com', 'https://*.linguil.app'],
+  // Specifies the valid parents that may embed a page using <frame> or <iframe>.
+  'frame-ancestors': ["'self'", 'https://discord.com'],
 };
 
 // Constructs a Content-Security-Policy string from a policy object.
@@ -72,7 +74,6 @@ const buildCsp = (policies) => {
 };
 
 const cspHeader = buildCsp(cspPolicies);
-
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -89,17 +90,12 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: cspHeader,
+            value: cspHeader.replace(/\s{2,}/g, ' ').trim(),
           },
           // Enforces HTTPS for all future visits.
           {
             key: 'Strict-Transport-Security',
             value: 'max-age=31536000; includeSubDomains; preload',
-          },
-          // Prevents the page from being displayed in a frame.
-          {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN',
           },
           // Prevents browsers from MIME-sniffing the content type.
           {
