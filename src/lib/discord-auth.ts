@@ -34,9 +34,11 @@ export const handleSignInWithDiscord = async (): Promise<DiscordClientAuthRespon
         scope: ['identify', 'guilds.join', 'rpc.activities.write'],
       });
 
+      const apiUrl = new URL('/api/auth/discord', window.location.origin);
+
       // Send the code to our backend, including a flag to indicate the request
       // is from the Discord client.
-      const response = await fetch('/api/auth/discord', {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, isFromDiscordClient: true }),

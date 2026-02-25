@@ -24,16 +24,22 @@ export async function POST(req: NextRequest) {
       accessToken = directAccessToken;
     } else if (code) {
       // 1. Exchange the authorization code for an access token from Discord.
+      const tokenRequestBody: { [key: string]: string } = {
+        client_id: process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!,
+        client_secret: process.env.DISCORD_CLIENT_SECRET!,
+        grant_type: 'authorization_code',
+        code,
+      };
+
+      if (!isFromDiscordClient) {
+        // The redirect_uri is only required for the standard browser OAuth flow.
+        tokenRequestBody.redirect_uri = process.env.DISCORD_REDIRECT_URI!;
+      }
+
       const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          client_id: process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!,
-          client_secret: process.env.DISCORD_CLIENT_SECRET!,
-          grant_type: 'authorization_code',
-          code,
-          redirect_uri: process.env.DISCORD_REDIRECT_URI!,
-        }),
+        body: new URLSearchParams(tokenRequestBody),
       });
 
       if (!tokenResponse.ok) {
