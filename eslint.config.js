@@ -53,7 +53,7 @@ export default [
       ...pluginReact.configs['jsx-runtime'].rules, // Rules for the new JSX transform.
       ...nextPlugin.configs.recommended.rules, // Recommended rules from @next/eslint-plugin-next.
       ...importPlugin.configs.typescript.rules, // TypeScript specific import rules.
-      "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }], // Disallow unused variables, ignoring those that start with _.
+      "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" }], // Disallow unused variables, ignoring those that start with _.
       "react-hooks/rules-of-hooks": "error", // Enforces rules of Hooks.
       "react-hooks/exhaustive-deps": "warn", // Checks effect dependencies.
       "react/prop-types": "off", // Not needed with TypeScript.
