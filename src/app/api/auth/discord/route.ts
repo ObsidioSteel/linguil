@@ -75,25 +75,28 @@ export async function POST(req: NextRequest) {
       await auth.updateUser(userRecord.uid, { email, displayName: username, photoURL });
     } catch (error: any) {
       if (error.code === 'auth/user-not-found') {
-        // 4. If user does not exist, create them in Firebase Auth.
+        // 4. If user does not exist, create a new one.
         const newUserRecord = await auth.createUser({ uid: discordId, email, displayName: username, photoURL });
+        // 5. Set a default `hasPaid` claim synchronously to prevent a race condition.
+        await auth.setCustomUserClaims(newUserRecord.uid, { hasPaid: false });
+        
+        // 6. Re-fetch the user record to get all properties, including the new custom claims.
+        userRecord = await auth.getUser(newUserRecord.uid);
 
-        // 5. Call Cloud Function to create user documents and set custom claims.
-        await fetch(CREATE_USER_URL, {
+        // 7. Trigger the background Cloud Function to create user documents in Firestore.
+        fetch(CREATE_USER_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uid: newUserRecord.uid, displayName: username, photoURL }),
+          body: JSON.stringify({ uid: userRecord.uid, displayName: username, photoURL }),
         });
 
-        // Re-fetch the user record to get all properties, including custom claims.
-        userRecord = await auth.getUser(newUserRecord.uid);
       } else {
         // Handle other Firebase Admin SDK errors.
         throw error;
       }
     }
 
-    // 6. Handle the response based on the client type.
+    // 8. Handle the response based on the client type.
     if (isFromDiscordClient) {
       // For the Discord client: Set a secure session cookie and return user data.
       const { uid, displayName } = userRecord;

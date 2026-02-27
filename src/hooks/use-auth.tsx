@@ -73,20 +73,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // State to check if the app is inside the Discord client.
   const [isInsideDiscord, setIsInsideDiscord] = useState(false);
 
-  // Check if we are inside the Discord client iframe and set activity.
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const inDiscord = !!params.get('frame_id');
-    setIsInsideDiscord(inDiscord);
-    if (inDiscord) {
-      getDiscordSdk().then(sdk => {
-        if (sdk) {
-          setLinguilActivity(sdk);
-        }
-      });
-    }
-  }, []);
-
   // Logs analytics events.
   const logEvent = useCallback(async (eventName: string, params = {}) => {
     if (isInsideDiscord) return;
@@ -138,18 +124,55 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [clearAuthError, handleAuthError, logEvent]);
 
-  // Handles user authentication state changes.
-  useEffect(() => {
-    // When inside Discord, we use our proxy and skip client-side Firebase auth.
-    if (isInsideDiscord) {
+  const signInWithDiscord = useCallback(async (): Promise<void> => {
+    clearAuthError();
+    setLoading(true);
+    try {
+        const { handleSignInWithDiscord } = await import('@/lib/discord-auth');
+        const response = await handleSignInWithDiscord();
+
+        if (!response) return;
+
+        if ('customToken' in response && typeof response.customToken === 'string') {
+            // Standard browser flow: sign in with the custom token.
+            await signInWithCustomToken(response.customToken);
+        } else if ('user' in response) {
+            // Discord client flow: set the user data directly.
+            const clientAuth = response as DiscordClientAuthResponse;
+            setDiscordClientUser(clientAuth.user);
+            setHasPaid(clientAuth.hasPaid);
+        }
+
+    } catch (error) {
+        handleAuthError(error);
+    } finally {
         setLoading(false);
-        return;
     }
+  }, [clearAuthError, handleAuthError, signInWithCustomToken]);
+
+  // Detects the environment (Discord client vs. browser) and initializes auth accordingly.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const inDiscord = !!params.get('frame_id');
+    setIsInsideDiscord(inDiscord);
+
+    if (inDiscord) {
+      // Running inside the Discord client.
+      getDiscordSdk().then(sdk => {
+        if (sdk) {
+          setLinguilActivity(sdk);
+        }
+      });
+      // Begin the proxied Discord authentication flow.
+      signInWithDiscord();
+      return; // Stop here for Discord client.
+    }
+
+    // Standard browser environment.
     let unsubscribe: (() => void) | undefined;
     const initializeAuth = async () => {
       try {
         const auth = await getFirebaseAuth();
-
         // Listen for changes in the user's sign-in state.
         unsubscribe = onIdTokenChanged(auth, async (currentUser) => {
           if (currentUser) {
@@ -191,7 +214,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         unsubscribe();
       }
     };
-  }, [isInsideDiscord, handleAuthError]);
+  }, [signInWithDiscord]);
 
   // Listens for real-time changes to the user's payment status in Firestore.
   useEffect(() => {
@@ -259,30 +282,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       handleAuthError(error);
     }
   }, [clearAuthError, handleAuthError, logEvent]);
-
-  // Handles Discord Sign in for both browser and Discord Client contexts
-  const signInWithDiscord = useCallback(async (): Promise<void> => {
-    clearAuthError();
-    try {
-        const { handleSignInWithDiscord } = await import('@/lib/discord-auth');
-        const response = await handleSignInWithDiscord();
-
-        if (!response) return;
-
-        if ('customToken' in response && typeof response.customToken === 'string') {
-            // Standard browser flow: sign in with the custom token.
-            await signInWithCustomToken(response.customToken);
-        } else if ('user' in response) {
-            // Discord client flow: set the user data directly.
-            const clientAuth = response as DiscordClientAuthResponse;
-            setDiscordClientUser(clientAuth.user);
-            setHasPaid(clientAuth.hasPaid);
-        }
-
-    } catch (error) {
-        handleAuthError(error);
-    }
-  }, [clearAuthError, handleAuthError, signInWithCustomToken]);
 
   // Handles email and password sign-in.
   const signInWithEmail = useCallback(
