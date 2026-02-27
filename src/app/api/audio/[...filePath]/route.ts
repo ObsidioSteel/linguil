@@ -1,21 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as admin from 'firebase-admin';
 
+// Force the use of the Node.js runtime for this route
+export const runtime = 'nodejs';
+
 // Initialize Firebase Admin SDK if not already initialized.
 if (admin.apps.length === 0) {
   admin.initializeApp();
 }
 
-// Define the type for the route context, containing the dynamic parameters.
-type RouteContext = {
-  params: {
-    filePath: string[];
-  };
-};
-
-export async function GET(request: NextRequest, context: RouteContext) {
+export async function GET(request: NextRequest, { params }: { params: { filePath: string[] } }) {
   try {
-    const { params } = context;
     const filePath = params.filePath.join('/');
     const bucket = admin.storage().bucket(); // Get default bucket
     const file = bucket.file(filePath);
@@ -31,7 +26,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     // Get a readable stream from the file
     const stream = file.createReadStream();
 
-    // Convert Node.js stream to a Web Stream for the Next.js edge runtime
+    // Convert Node.js stream to a Web Stream for the NextResponse
     const webStream = new ReadableStream({
       start(controller) {
         stream.on('data', (chunk) => controller.enqueue(chunk));
