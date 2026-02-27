@@ -6,9 +6,17 @@ if (admin.apps.length === 0) {
   admin.initializeApp();
 }
 
-export async function GET(request: NextRequest, context: { params: { filePath: string[] } }) {
+// Define the type for the route context, containing the dynamic parameters.
+type RouteContext = {
+  params: {
+    filePath: string[];
+  };
+};
+
+export async function GET(request: NextRequest, context: RouteContext) {
   try {
-    const filePath = context.params.filePath.join('/');
+    const { params } = context;
+    const filePath = params.filePath.join('/');
     const bucket = admin.storage().bucket(); // Get default bucket
     const file = bucket.file(filePath);
 
