@@ -72,6 +72,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const dbRef = useRef<Firestore | null>(null);
   // State to check if the app is inside the Discord client.
   const [isInsideDiscord, setIsInsideDiscord] = useState(false);
+  // State to prevent hydration errors by delaying client-side logic.
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   // Logs analytics events.
   const logEvent = useCallback(async (eventName: string, params = {}) => {
@@ -152,19 +158,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Detects the environment (Discord client vs. browser) and initializes auth accordingly.
   useEffect(() => {
+    if (!hasMounted) return; // Prevent execution until the client has mounted, to avoid hydration errors.
+
     const params = new URLSearchParams(window.location.search);
     const inDiscord = !!params.get('frame_id');
     setIsInsideDiscord(inDiscord);
 
     if (inDiscord) {
       // Running inside the Discord client.
-      getDiscordSdk().then(sdk => {
+      const initDiscordAuth = async () => {
+        // Authenticate the user with our backend via the Discord SDK.
+        await signInWithDiscord();
+        // After a successful sign-in, set the user's activity.
+        const sdk = await getDiscordSdk();
         if (sdk) {
           setLinguilActivity(sdk);
         }
-      });
-      // Begin the proxied Discord authentication flow.
-      signInWithDiscord();
+      };
+      initDiscordAuth();
       return; // Stop here for Discord client.
     }
 
@@ -214,7 +225,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         unsubscribe();
       }
     };
-  }, [signInWithDiscord]);
+  }, [hasMounted, signInWithDiscord]);
 
   // Listens for real-time changes to the user's payment status in Firestore.
   useEffect(() => {
