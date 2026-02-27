@@ -260,7 +260,24 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
 
     if (data.audioUrl) {
       // Use pre-recorded audio if available.
-      const player = new Audio(data.audioUrl);
+      let audioSrc = data.audioUrl;
+
+      // When inside Discord, proxy audio through the app's backend to avoid CSP issues.
+      if (isInsideDiscord) {
+        try {
+          // The audioUrl from Firebase is a full HTTPS URL. We need to extract the path to use our proxy.
+          // e.g., https://storage.googleapis.com/bucket-name/audio/file.mp3 -> /api/audio/audio/file.mp3
+          const url = new URL(audioSrc);
+          const pathSegment = url.pathname.substring(url.pathname.indexOf('/', 1) + 1); // Removes bucket name
+          if (pathSegment) {
+            audioSrc = `/api/audio/${pathSegment}`;
+          }
+        } catch (error) {
+            console.error('Failed to construct proxy audio URL:', error);
+        }
+      }
+
+      const player = new Audio(audioSrc);
       dispatch({ type: 'SET_AUDIO_PLAYER', payload: player });
       dispatch({ type: 'SET_AUDIO_READY', payload: true });
       player.onerror = () => {};
@@ -277,7 +294,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
       handleVoicesChanged();
       return () => { window.speechSynthesis.onvoiceschanged = null; };
     }
-  }, [state.data]);
+  }, [state.data, isInsideDiscord]);
 
   // Plays the audio for the current word.
   const handlePlayAudio = useCallback(() => {

@@ -2,14 +2,22 @@
 
 import { useEffect, memo } from 'react';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/hooks/use-auth';
 
 // Tracks page views and performance using Firebase.
 const AnalyticsTracker = memo(() => {
   // Gets the current URL path.
   const pathname = usePathname();
+  const { isInsideDiscord } = useAuth();
 
   // Initializes services and logs page views.
   useEffect(() => {
+    // Do not initialize Analytics or Performance inside the Discord client
+    // as their network requests violate Discord's Content Security Policy.
+    if (isInsideDiscord) {
+      return;
+    }
+
     const initializeFirebaseServices = async () => {
       try {
         const { getFirebasePerformance } = await import('@/lib/firebase/firebase');
@@ -32,11 +40,11 @@ const AnalyticsTracker = memo(() => {
 
     // Defer the initialization of Firebase services to prevent blocking the main thread during initial page load.
     const timer = setTimeout(() => {
-        initializeFirebaseServices();
+      initializeFirebaseServices();
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [pathname]);
+  }, [pathname, isInsideDiscord]);
 
   // This component does not render any UI.
   return null;
