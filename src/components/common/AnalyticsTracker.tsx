@@ -2,7 +2,6 @@
 
 import { useEffect, memo } from 'react';
 import { usePathname } from 'next/navigation';
-import { getFirebaseAnalytics, getFirebasePerformance } from '@/lib/firebase/firebase';
 
 // Tracks page views and performance using Firebase.
 const AnalyticsTracker = memo(() => {
@@ -13,9 +12,11 @@ const AnalyticsTracker = memo(() => {
   useEffect(() => {
     const initializeFirebaseServices = async () => {
       try {
+        const { getFirebasePerformance } = await import('@/lib/firebase/firebase');
         // Initialize Performance Monitoring on every page load.
         getFirebasePerformance();
 
+        const { getFirebaseAnalytics } = await import('@/lib/firebase/firebase');
         // Lazily retrieves the Firebase Analytics instance.
         const analytics = await getFirebaseAnalytics();
         // Skips tracking if analytics is unavailable.

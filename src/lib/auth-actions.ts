@@ -1,15 +1,6 @@
 'use client';
 
-import {
-  GoogleAuthProvider,
-  signInWithPopup,
-  signInWithEmailAndPassword,
-  sendPasswordResetEmail,
-  signOut,
-  signInWithCustomToken,
-  type UserCredential,
-} from 'firebase/auth';
-import { getFirebaseAuth } from '@/lib/firebase/firebase';
+import type { UserCredential } from 'firebase/auth';
 
 // Maps Firebase auth error codes to user-friendly messages.
 export const getAuthErrorMessage = (error: unknown): string => {
@@ -55,6 +46,8 @@ export const getAuthErrorMessage = (error: unknown): string => {
 
 // Initiates the Google sign-in process.
 export const signInWithGoogle = async (): Promise<UserCredential> => {
+  const { getFirebaseAuth } = await import('@/lib/firebase/firebase');
+  const { GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
   const auth = await getFirebaseAuth();
   const provider = new GoogleAuthProvider();
   provider.addScope('profile');
@@ -70,6 +63,8 @@ export const signInWithGoogle = async (): Promise<UserCredential> => {
 
 // Authenticates a user with email and password.
 export const handleSignInWithEmail = async (email: string, password: string): Promise<UserCredential> => {
+  const { getFirebaseAuth } = await import('@/lib/firebase/firebase');
+  const { signInWithEmailAndPassword } = await import('firebase/auth');
   const auth = await getFirebaseAuth();
   return await signInWithEmailAndPassword(auth, email, password);
 };
@@ -88,18 +83,24 @@ export const handleSignUpWithEmail = async (name: string, email: string, passwor
     throw new Error(data.error || 'Sign-up failed');
   }
 
+  const { getFirebaseAuth } = await import('@/lib/firebase/firebase');
+  const { signInWithCustomToken } = await import('firebase/auth');
   const auth = await getFirebaseAuth();
   return await signInWithCustomToken(auth, data.token);
 };
 
 // Sends a password reset email to the specified user.
 export const handleResetPassword = async (email: string): Promise<void> => {
+  const { getFirebaseAuth } = await import('@/lib/firebase/firebase');
+  const { sendPasswordResetEmail } = await import('firebase/auth');
   const auth = await getFirebaseAuth();
   await sendPasswordResetEmail(auth, email);
 };
 
 // Signs out the currently authenticated user.
 export const handleSignOut = async (): Promise<void> => {
+  const { getFirebaseAuth } = await import('@/lib/firebase/firebase');
+  const { signOut } = await import('firebase/auth');
   const auth = await getFirebaseAuth();
   await signOut(auth);
 };

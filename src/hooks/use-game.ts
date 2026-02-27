@@ -2,15 +2,12 @@
 
 import { useEffect, useCallback, useReducer } from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, query, where, getDocs } from 'firebase/firestore';
 import type { ProcessedDailyData, RawDailyData, DailyScore } from '@/types';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { getDailyWordDataClient } from '@/lib/game/data-service-client';
 import { getOfflineQuizData } from '@/lib/game/data-service-offline';
-import { saveUserScore as saveUserScoreToDb } from '@/lib/firebase/firestore';
 import { generateQuestions } from '@/lib/game/quiz-questions';
-import { getFirebaseFirestore } from '@/lib/firebase/firebase';
 
 // Keys for session storage.
 const GAME_MODE_KEY = 'linguil-game-mode';
@@ -128,6 +125,8 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
     const activeUser = user || discordClientUser;
     if (!activeUser) return null;
 
+    const { getFirebaseFirestore } = await import('@/lib/firebase/firebase');
+    const { collection, query, where, getDocs } = await import('firebase/firestore');
     const db = await getFirebaseFirestore();
     const dailyScoresRef = collection(db, 'users', activeUser.uid, 'dailyScores');
     const q = query(dailyScoresRef, where('wordIdentifier', '==', wordIdentifier));
@@ -157,6 +156,8 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
       if (activeUser && !isInsideDiscord) {
         const pendingScore = getPendingScore();
         if (pendingScore?.wordIdentifier === date) {
+          const { getFirebaseFirestore } = await import('@/lib/firebase/firebase');
+          const { saveUserScore: saveUserScoreToDb } = await import('@/lib/firebase/firestore');
           const db = await getFirebaseFirestore();
           await saveUserScoreToDb(db, { uid: activeUser.uid } as any, pendingScore.score, pendingScore.totalQuestions, date);
           finalScore = { score: pendingScore.score, totalQuestions: pendingScore.totalQuestions };
@@ -325,6 +326,8 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
       }
     } else if (user) {
       // If online in browser, save the score to the database directly.
+      const { getFirebaseFirestore } = await import('@/lib/firebase/firebase');
+      const { saveUserScore: saveUserScoreToDb } = await import('@/lib/firebase/firestore');
       const db = await getFirebaseFirestore();
       saveUserScoreToDb(db, user, finalScore, state.data.questions.length, state.data.date);
     } else {

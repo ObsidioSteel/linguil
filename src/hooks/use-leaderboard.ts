@@ -5,7 +5,6 @@ import type { Unsubscribe } from 'firebase/firestore';
 import type { PlayerStats } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import useFriends from './use-friends';
-import { getFirebaseFirestore } from '@/lib/firebase/firebase';
 import type { User } from 'firebase/auth';
 
 // Manages and displays the leaderboard.
@@ -61,6 +60,7 @@ export const useLeaderboard = (user: User | null, isInsideDiscord?: boolean) => 
     listenersRef.current.forEach(unsub => unsub()); // Cleans up existing listeners.
     listenersRef.current = [];
     
+    const { getFirebaseFirestore } = await import('@/lib/firebase/firebase');
     const db = await getFirebaseFirestore();
     const uidsToQuery = Array.from(new Set([uid, ...friendUids])); // Create a unique list of UIDs to query.
     const MAX_IN_QUERIES = 30; // Firestore 'in' query limit.
@@ -121,6 +121,7 @@ export const useLeaderboard = (user: User | null, isInsideDiscord?: boolean) => 
     
     let isMounted = true;
     (async () => {
+      const { getFirebaseFirestore } = await import('@/lib/firebase/firebase');
       const db = await getFirebaseFirestore();
       
       if (userDocListenerRef.current) userDocListenerRef.current(); // Clean up previous user doc listener.
@@ -199,6 +200,7 @@ export const useLeaderboard = (user: User | null, isInsideDiscord?: boolean) => 
         return;
     }
 
+    const { getFirebaseFirestore } = await import('@/lib/firebase/firebase');
     const db = await getFirebaseFirestore();
 
     const { doc, updateDoc } = await import('firebase/firestore');

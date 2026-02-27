@@ -2,8 +2,6 @@
 
 import { useToast } from '@/hooks/use-toast';
 import type { PlayerStats } from '@/types';
-import { getFirebaseFirestore } from '@/lib/firebase/firebase';
-import { doc, updateDoc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
 import { useCallback } from 'react';
 
 // Custom hook for managing a user's friend list.
@@ -30,6 +28,8 @@ const useFriends = (currentUserStats: PlayerStats | null) => {
     }
 
     try {
+      const { getFirebaseFirestore } = await import('@/lib/firebase/firebase');
+      const { doc, getDoc, updateDoc, arrayUnion } = await import('firebase/firestore');
       const db = await getFirebaseFirestore();
       const userDocRef = doc(db, 'users', currentUserStats.uid);
       const userDoc = await getDoc(userDocRef);
@@ -81,6 +81,8 @@ const useFriends = (currentUserStats: PlayerStats | null) => {
     }
 
     try {
+      const { getFirebaseFirestore } = await import('@/lib/firebase/firebase');
+      const { doc, updateDoc, arrayRemove } = await import('firebase/firestore');
       const db = await getFirebaseFirestore();
       const userDocRef = doc(db, 'users', currentUserStats.uid);
 

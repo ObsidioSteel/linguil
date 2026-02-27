@@ -4,7 +4,6 @@ import { useEffect, useRef } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { getFirebaseFirestore, getFirebasePerformance, getFirebaseAnalytics } from '@/lib/firebase/firebase';
 import type { DocumentData, Unsubscribe } from 'firebase/firestore';
 import type { PerformanceTrace } from 'firebase/performance';
 
@@ -48,6 +47,7 @@ export const PostPaymentHandler = () => {
     // Handles the main payment verification process.
     const handlePaymentVerification = async () => {
       try {
+        const { getFirebasePerformance } = await import('@/lib/firebase/firebase');
         // Starts a Firebase Performance trace for payment verification.
         const perf = await getFirebasePerformance();
         if (perf) {
@@ -58,6 +58,7 @@ export const PostPaymentHandler = () => {
 
         await user.getIdToken();
 
+        const { getFirebaseFirestore } = await import('@/lib/firebase/firebase');
         // Gets a Firestore database reference.
         const db = await getFirebaseFirestore();
         const { doc, onSnapshot } = await import('firebase/firestore');
@@ -82,6 +83,7 @@ export const PostPaymentHandler = () => {
 
             // Logs a 'purchase' event with Firebase Analytics.
             try {
+              const { getFirebaseAnalytics } = await import('@/lib/firebase/firebase');
               const analytics = await getFirebaseAnalytics();
               if (analytics) {
                 const { logEvent } = await import('firebase/analytics');

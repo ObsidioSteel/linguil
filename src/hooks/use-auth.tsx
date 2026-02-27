@@ -9,15 +9,13 @@ import {
   useCallback,
 } from 'react';
 import type { ReactNode, ComponentType } from 'react';
-import { onIdTokenChanged, type User, getAdditionalUserInfo, signInWithCustomToken as firebaseSignInWithCustomToken } from 'firebase/auth';
+import type { User } from 'firebase/auth';
 import { doc, onSnapshot, type Firestore } from 'firebase/firestore';
 import type { AuthDialogProps } from '@/components/auth/AuthDialog';
 import Cookies from 'js-cookie';
 import { GlobalLoadingSpinner } from '@/components/common/GlobalLoadingSpinner';
 import { useToast } from './use-toast';
 import { getAuthErrorMessage } from '@/lib/auth-actions';
-import { getFirebaseAuth, getFirebaseFirestore, getFirebaseAnalytics } from '@/lib/firebase/firebase';
-import { logEvent as logAnalyticsEvent, setUserProperties, setUserId } from 'firebase/analytics';
 import { getDiscordSdk } from '@/lib/discord';
 import { setLinguilActivity } from '@/lib/discord-activity';
 import type { DiscordClientUser, DiscordClientAuthResponse } from '@/lib/discord-auth';
@@ -83,6 +81,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logEvent = useCallback(async (eventName: string, params = {}) => {
     if (isInsideDiscord) return;
     try {
+      const { getFirebaseAnalytics } = await import('@/lib/firebase/firebase');
+      const { logEvent: logAnalyticsEvent } = await import('firebase/analytics');
       const analytics = await getFirebaseAnalytics();
       if (analytics) {
         logAnalyticsEvent(analytics, eventName, params);
@@ -118,8 +118,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const signInWithCustomToken = useCallback(async (token: string): Promise<void> => {
+    if (isInsideDiscord) return;
     clearAuthError();
     try {
+      const { getFirebaseAuth } = await import('@/lib/firebase/firebase');
+      const { getAdditionalUserInfo, signInWithCustomToken: firebaseSignInWithCustomToken } = await import('firebase/auth');
       const auth = await getFirebaseAuth();
       const userCredential = await firebaseSignInWithCustomToken(auth, token);
       const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser ?? false;
@@ -128,7 +131,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       handleAuthError(error);
     }
-  }, [clearAuthError, handleAuthError, logEvent]);
+  }, [isInsideDiscord, clearAuthError, handleAuthError, logEvent]);
 
   const signInWithDiscord = useCallback(async (): Promise<void> => {
     clearAuthError();
@@ -156,7 +159,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [clearAuthError, handleAuthError, signInWithCustomToken]);
 
-  // Detects the environment (Discord client vs. browser) and initializes auth accordingly.
+  // This is the primary authentication effect.
+  // It detects the environment (Discord client vs. browser) and initializes auth accordingly.
   useEffect(() => {
     if (!hasMounted) return; // Prevent execution until the client has mounted, to avoid hydration errors.
 
@@ -167,9 +171,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (inDiscord) {
       // Running inside the Discord client.
       const initDiscordAuth = async () => {
-        // Authenticate the user with our backend via the Discord SDK.
+        // First, we authenticate the user with our backend via the Discord SDK.
         await signInWithDiscord();
-        // After a successful sign-in, set the user's activity.
+        // After a successful sign-in, the Discord SDK will be authenticated.
+        // Now we can safely get the SDK instance and set the user's activity.
         const sdk = await getDiscordSdk();
         if (sdk) {
           setLinguilActivity(sdk);
@@ -183,6 +188,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let unsubscribe: (() => void) | undefined;
     const initializeAuth = async () => {
       try {
+        const { getFirebaseAuth } = await import('@/lib/firebase/firebase');
+        const { onIdTokenChanged } = await import('firebase/auth');
         const auth = await getFirebaseAuth();
         // Listen for changes in the user's sign-in state.
         unsubscribe = onIdTokenChanged(auth, async (currentUser) => {
@@ -196,6 +203,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setHasPaid(paidStatus);
             Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1 });
             try {
+              const { getFirebaseAnalytics } = await import('@/lib/firebase/firebase');
+              const { setUserId, setUserProperties } = await import('firebase/analytics');
               const analytics = await getFirebaseAnalytics();
               if (analytics) {
                 setUserId(analytics, currentUser.uid);
@@ -237,6 +246,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         // Initialize Firestore if it hasn't been already.
         if (!dbRef.current) {
+          const { getFirebaseFirestore } = await import('@/lib/firebase/firebase');
           dbRef.current = await getFirebaseFirestore();
         }
         const userDocRef = doc(dbRef.current, 'users', user.uid);
@@ -248,9 +258,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (hasPaid !== serverHasPaid) {
               setHasPaid(serverHasPaid);
               // Update user properties in analytics.
-              getFirebaseAnalytics().then(analytics => {
-                if(analytics && !isInsideDiscord) setUserProperties(analytics, { has_paid: serverHasPaid });
-              })
+              import('@/lib/firebase/firebase').then(({ getFirebaseAnalytics }) => {
+                getFirebaseAnalytics().then(analytics => {
+                  if(analytics && !isInsideDiscord) {
+                    import('firebase/analytics').then(({ setUserProperties }) => {
+                      setUserProperties(analytics, { has_paid: serverHasPaid });
+                    });
+                  }
+                })
+              });
             }
           }
         });
@@ -276,9 +292,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Handles Google sign-in.
   const signInWithGoogle = useCallback(async (): Promise<void> => {
+    if (isInsideDiscord) return;
     clearAuthError();
     try {
       const { signInWithGoogle: signIn } = await import('@/lib/auth-actions');
+      const { getAdditionalUserInfo } = await import('firebase/auth');
       const userCredential = await signIn();
       const user = userCredential.user;
       const idTokenResult = await user.getIdTokenResult();
@@ -292,11 +310,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       handleAuthError(error);
     }
-  }, [clearAuthError, handleAuthError, logEvent]);
+  }, [isInsideDiscord, clearAuthError, handleAuthError, logEvent]);
 
   // Handles email and password sign-in.
   const signInWithEmail = useCallback(
     async (email: string, password: string): Promise<boolean> => {
+      if (isInsideDiscord) return false;
       clearAuthError();
       if (!email || !password) {
         setAuthError('Missing email or password');
@@ -319,12 +338,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
     },
-    [clearAuthError, handleAuthError, logEvent]
+    [isInsideDiscord, clearAuthError, handleAuthError, logEvent]
   );
 
   // Handles new user sign-up.
   const signUpWithEmail = useCallback(
     async (name: string, email: string, password: string): Promise<boolean> => {
+      if (isInsideDiscord) return false;
       clearAuthError();
       if (!name.trim() || !email || !password) {
         setAuthError('Missing name, email or password');
@@ -347,12 +367,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
     },
-    [clearAuthError, handleAuthError, logEvent]
+    [isInsideDiscord, clearAuthError, handleAuthError, logEvent]
   );
 
   // Handles password reset requests.
   const resetPassword = useCallback(
     async (email: string): Promise<boolean> => {
+      if (isInsideDiscord) return false;
       clearAuthError();
       if (!email) {
         setAuthError('Email is required');
@@ -371,11 +392,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
     },
-    [clearAuthError, handleAuthError, toast]
+    [isInsideDiscord, clearAuthError, handleAuthError, toast]
   );
 
   // Handles user sign-out.
   const logout = async (): Promise<void> => {
+    if (isInsideDiscord) {
+        setDiscordClientUser(null);
+        return;
+    }
     try {
       // Run all registered cleanup functions.
       signOutCleanup.current.forEach((cleanup) => cleanup());
@@ -394,6 +419,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Dynamically loads and opens the authentication dialog.
   const openAuthDialog = useCallback(() => {
+    if (isInsideDiscord) return;
     if (AuthDialog) {
       setIsAuthDialogOpen(true);
     } else {
@@ -402,7 +428,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsAuthDialogOpen(true);
       });
     }
-  }, [AuthDialog]);
+  }, [AuthDialog, isInsideDiscord]);
 
   // The value provided to the AuthContext.
   const value = {
