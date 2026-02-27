@@ -6,9 +6,9 @@ if (admin.apps.length === 0) {
   admin.initializeApp();
 }
 
-export async function GET(request: NextRequest, { params }: { params: { filePath: string[] } }) {
+export async function GET(request: NextRequest, context: { params: { filePath: string[] } }) {
   try {
-    const filePath = params.filePath.join('/');
+    const filePath = context.params.filePath.join('/');
     const bucket = admin.storage().bucket(); // Get default bucket
     const file = bucket.file(filePath);
 
