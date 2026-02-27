@@ -193,7 +193,7 @@ export const useLeaderboard = (user: User | null, isInsideDiscord?: boolean) => 
             setPlayers(prevPlayers => prevPlayers.map(p => p.uid === user.uid ? { ...p, displayName: newName } : p));
             showToast("Success", "Name updated");
 
-        } catch (e) {
+        } catch (_e) {
             showToast("Error", "Failed to update name", "destructive");
         }
         return;
@@ -250,7 +250,7 @@ export const useLeaderboard = (user: User | null, isInsideDiscord?: boolean) => 
             if (!response.ok) throw new Error('Server error');
             showToast("Friend removed", `You are no longer friends with ${name}.`);
             fetchDiscordLeaderboard(); // Re-fetch the leaderboard to show the change
-        } catch (e) {
+        } catch (_e) {
             showToast("Error", "Failed to remove friend", "destructive");
         }
         return;

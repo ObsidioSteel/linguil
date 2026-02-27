@@ -110,7 +110,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
   }, [toast]);
 
   // Retrieves a pending score from session storage.
-  const getPendingScore = (): (DailyScore & { wordIdentifier: string }) | null => {
+  const getPendingScore = useCallback((): (DailyScore & { wordIdentifier: string }) | null => {
     if (isInsideDiscord) return null;
     const pendingScoreJSON = sessionStorage.getItem(PENDING_SCORE_KEY);
     if (!pendingScoreJSON) return null;
@@ -120,7 +120,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
       sessionStorage.removeItem(PENDING_SCORE_KEY);
       return null;
     }
-  };
+  }, [isInsideDiscord]);
 
   // Fetches the user's score for a specific day.
   const getUserDailyScore = useCallback(async (wordIdentifier: string) => {
@@ -171,7 +171,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
       showErrorToast("Error loading game", "Failed to load game data");
       dispatch({ type: 'DATA_LOAD_ERROR' });
     }
-  }, [initialDailyWord, getUserDailyScore, user, discordClientUser, showErrorToast, isInsideDiscord]);
+  }, [initialDailyWord, getUserDailyScore, user, discordClientUser, showErrorToast, isInsideDiscord, getPendingScore]);
 
   // Loads data for an offline game.
   const loadOfflineGame = useCallback(async (isNew: boolean = false) => {

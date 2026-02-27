@@ -8,7 +8,7 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-export async function GET(req: Request) {
+export async function GET(_req: Request) {
   try {
     const cookieStore = await cookies();
     const session = cookieStore.get('session');
