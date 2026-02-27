@@ -65,17 +65,18 @@ export async function POST(req: NextRequest) {
     const discordUser = await userResponse.json();
     const { id: discordId, username, avatar } = discordUser;
     const photoURL = avatar ? `https://cdn.discordapp.com/avatars/${discordId}/${avatar}.png` : undefined;
+    const email = `${username.replace(/[^a-zA-Z0-9]/g, '')}.${discordId}@linguil.app`;
 
     let userRecord: UserRecord;
 
     try {
       // 3. Check if the user already exists in Firebase Auth.
       userRecord = await auth.getUser(discordId);
-      await auth.updateUser(userRecord.uid, { displayName: username, photoURL });
+      await auth.updateUser(userRecord.uid, { email, displayName: username, photoURL });
     } catch (error: any) {
       if (error.code === 'auth/user-not-found') {
         // 4. If user does not exist, create them in Firebase Auth.
-        const newUserRecord = await auth.createUser({ uid: discordId, displayName: username, photoURL });
+        const newUserRecord = await auth.createUser({ uid: discordId, email, displayName: username, photoURL });
 
         // 5. Call Cloud Function to create user documents and set custom claims.
         await fetch(CREATE_USER_URL, {

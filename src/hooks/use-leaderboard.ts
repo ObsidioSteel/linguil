@@ -9,7 +9,7 @@ import { getFirebaseFirestore } from '@/lib/firebase/firebase';
 import type { User } from 'firebase/auth';
 
 // Manages and displays the leaderboard.
-export const useLeaderboard = (user: User | null) => {
+export const useLeaderboard = (user: User | null, isInsideDiscord?: boolean) => {
   const [players, setPlayers] = useState<PlayerStats[]>([]); // Holds player statistics.
   const { toast } = useToast(); // Hook for showing toast notifications.
   
@@ -43,6 +43,18 @@ export const useLeaderboard = (user: User | null) => {
     friendUidsRef.current = [];
     isInitialLoadRef.current = true;
   }, []);
+
+  const fetchDiscordLeaderboard = useCallback(async () => {
+    if (!user) return;
+    try {
+        const response = await fetch('/api/user/friends');
+        if (!response.ok) throw new Error('Failed to fetch');
+        const data = await response.json();
+        setPlayers(data);
+    } catch {
+        showToast("Error", "Could not load leaderboard.", "destructive");
+    }
+  }, [user, showToast]);
 
   // Sets up real-time Firestore listeners for the user and their friends.
   const setupListeners = useCallback(async (uid: string, friendUids: string[]) => {
@@ -96,6 +108,12 @@ export const useLeaderboard = (user: User | null) => {
 
   // Orchestrates listener setup when the user logs in or friends change.
   useEffect(() => {
+    if (isInsideDiscord) {
+      fetchDiscordLeaderboard(); // Fetch data immediately on load
+      const intervalId = setInterval(fetchDiscordLeaderboard, 5000); // Poll every 5 seconds
+      return () => clearInterval(intervalId); // Cleanup on unmount
+    }
+
     if (!user || !user.uid) {
       cleanupListeners(); // Clean up if user is not logged in.
       return;
@@ -131,7 +149,7 @@ export const useLeaderboard = (user: User | null) => {
       isMounted = false; // Prevent state updates on unmounted component.
       cleanupListeners();
     };
-  }, [user, setupListeners, cleanupListeners]);
+  }, [user, setupListeners, cleanupListeners, isInsideDiscord, fetchDiscordLeaderboard]);
 
   // Sorts players for the leaderboard display.
   const sortedPlayers = useMemo(() => {
@@ -160,6 +178,27 @@ export const useLeaderboard = (user: User | null) => {
       return;
     }
 
+    if (isInsideDiscord) {
+        try {
+            const response = await fetch('/api/user/update-name', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ newName }),
+            });
+
+            if (!response.ok) throw new Error('Server error');
+            
+            setPlayers(prevPlayers => prevPlayers.map(p => p.uid === user.uid ? { ...p, displayName: newName } : p));
+            showToast("Success", "Name updated");
+
+        } catch (e) {
+            showToast("Error", "Failed to update name", "destructive");
+        }
+        return;
+    }
+
     const db = await getFirebaseFirestore();
 
     const { doc, updateDoc } = await import('firebase/firestore');
@@ -171,8 +210,54 @@ export const useLeaderboard = (user: User | null) => {
     } catch {
       showToast("Error", "Failed to update name", "destructive");
     }
-  }, [user, showToast]);
+  }, [user, showToast, isInsideDiscord]);
+
+  const handleAddFriendWrapper = useCallback(async (uid: string) => {
+    if (!user) return;
+    if (isInsideDiscord) {
+        try {
+            const response = await fetch('/api/user/add-friend', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ friendUid: uid }),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Server error');
+            showToast("New friend", `You are now friends with ${data.friendName}!`);
+            fetchDiscordLeaderboard(); // Re-fetch the leaderboard to show the new friend
+        } catch (e) {
+            const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+            showToast("Error", errorMessage, "destructive");
+        }
+        return;
+    }
+    await handleAddFriend(uid);
+  }, [user, isInsideDiscord, showToast, handleAddFriend, fetchDiscordLeaderboard]);
+
+  const handleRemoveFriendWrapper = useCallback(async (uid: string, name: string) => {
+    if (!user) return;
+    if (isInsideDiscord) {
+        try {
+            const response = await fetch('/api/user/remove-friend', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ friendUid: uid }),
+            });
+            if (!response.ok) throw new Error('Server error');
+            showToast("Friend removed", `You are no longer friends with ${name}.`);
+            fetchDiscordLeaderboard(); // Re-fetch the leaderboard to show the change
+        } catch (e) {
+            showToast("Error", "Failed to remove friend", "destructive");
+        }
+        return;
+    }
+    await handleRemoveFriend(uid, name);
+  }, [user, isInsideDiscord, showToast, handleRemoveFriend, fetchDiscordLeaderboard]);
 
   // Returns the sorted player list and handler functions.
-  return { players: sortedPlayers, handleAddFriend, handleRemoveFriend, handleUpdateName, currentUserStats };
+  return { players: sortedPlayers, handleAddFriend: handleAddFriendWrapper, handleRemoveFriend: handleRemoveFriendWrapper, handleUpdateName, currentUserStats };
 };

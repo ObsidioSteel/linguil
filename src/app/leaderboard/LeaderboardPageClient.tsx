@@ -35,7 +35,7 @@ const CHART_COLORS = [
 ];
 
 // This component renders the client-side logic for the leaderboard page.
-const AuthenticatedView = ({ user }: { user: User }) => {
+const AuthenticatedView = ({ user, isInsideDiscord }: { user: User, isInsideDiscord: boolean }) => {
   // Get the toast function for displaying notifications.
   const { toast } = useToast();
   // Use local storage to persist the selected chart color.
@@ -44,7 +44,7 @@ const AuthenticatedView = ({ user }: { user: User }) => {
   const [friendUid, setFriendUid] = useState('');
 
   // Get leaderboard data and functions from the useLeaderboard hook.
-  const { players, handleAddFriend, handleRemoveFriend, handleUpdateName } = useLeaderboard(user);
+  const { players, handleAddFriend, handleRemoveFriend, handleUpdateName } = useLeaderboard(user, isInsideDiscord);
 
   // Function to copy the user's UID to the clipboard.
   const handleCopy = () => {
@@ -97,7 +97,7 @@ const AuthenticatedView = ({ user }: { user: User }) => {
 // This component renders the client-side logic for the leaderboard page.
 const LeaderboardPageClient = () => {
   // Get user authentication status and data from the useAuth hook.
-  const { user, loading } = useAuth();
+  const { user, loading, isInsideDiscord } = useAuth();
 
   // Show a loading spinner while checking the authentication status.
   if (loading) {
@@ -117,7 +117,7 @@ const LeaderboardPageClient = () => {
             )}
             </div>
 
-            {user ? <AuthenticatedView user={user} /> : <MockLeaderboard />}
+            {user ? <AuthenticatedView user={user} isInsideDiscord={isInsideDiscord} /> : <MockLeaderboard />}
         </div>
     </div>
   );

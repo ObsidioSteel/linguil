@@ -32,6 +32,7 @@ interface AuthContextType {
   loading: boolean; // Indicates if authentication status is being checked.
   authError: string | null; // Stores any authentication-related error messages.
   hasPaid: boolean; // Indicates if the user has a paid subscription.
+  isInsideDiscord: boolean; // Indicates if the app is inside the Discord client.
   signInWithGoogle: () => Promise<void>; // Function to initiate Google sign-in.
   signInWithDiscord: () => Promise<void>; // Function to initiate Discord sign-in.
   signInWithCustomToken: (token: string) => Promise<void>; // Function to sign in with a custom token.
@@ -75,8 +76,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Check if we are inside the Discord client iframe and set activity.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('frame_id')) {
-      setIsInsideDiscord(true);
+    const inDiscord = !!params.get('frame_id');
+    setIsInsideDiscord(inDiscord);
+    if (inDiscord) {
       getDiscordSdk().then(sdk => {
         if (sdk) {
           setLinguilActivity(sdk);
@@ -193,7 +195,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Listens for real-time changes to the user's payment status in Firestore.
   useEffect(() => {
-    if (!user) return;
+    if (!user || isInsideDiscord) return;
 
     let unsubscribe: (() => void) | undefined;
 
@@ -399,6 +401,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loading,
     authError,
     hasPaid,
+    isInsideDiscord,
     signInWithGoogle,
     signInWithDiscord,
     signInWithCustomToken,

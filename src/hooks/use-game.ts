@@ -101,7 +101,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 export const useGame = (initialDailyWord: RawDailyData | null = null) => {
   const router = useRouter();
   const { toast } = useToast();
-  const { user, discordClientUser, loading: authLoading, hasPaid, addSignOutCleanup, removeSignOutCleanup } = useAuth();
+  const { user, discordClientUser, loading: authLoading, hasPaid, isInsideDiscord, addSignOutCleanup, removeSignOutCleanup } = useAuth();
   const [state, dispatch] = useReducer(gameReducer, initialState);
 
   // Shows an error toast.
@@ -111,6 +111,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
 
   // Retrieves a pending score from session storage.
   const getPendingScore = (): (DailyScore & { wordIdentifier: string }) | null => {
+    if (isInsideDiscord) return null;
     const pendingScoreJSON = sessionStorage.getItem(PENDING_SCORE_KEY);
     if (!pendingScoreJSON) return null;
     try { 
@@ -123,6 +124,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
 
   // Fetches the user's score for a specific day.
   const getUserDailyScore = useCallback(async (wordIdentifier: string) => {
+    if (isInsideDiscord) return null;
     const activeUser = user || discordClientUser;
     if (!activeUser) return null;
 
@@ -135,7 +137,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
       return { score: doc.score, totalQuestions: doc.totalQuestions };
     }
     return null;
-  }, [user, discordClientUser]);
+  }, [user, discordClientUser, isInsideDiscord]);
 
   // Loads data for the daily online game.
   const loadDailyData = useCallback(async () => {
@@ -152,7 +154,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
       let finalScore: DailyScore | null = null;
       const activeUser = user || discordClientUser;
 
-      if (activeUser) {
+      if (activeUser && !isInsideDiscord) {
         const pendingScore = getPendingScore();
         if (pendingScore?.wordIdentifier === date) {
           const db = await getFirebaseFirestore();
@@ -169,7 +171,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
       showErrorToast("Error loading game", "Failed to load game data");
       dispatch({ type: 'DATA_LOAD_ERROR' });
     }
-  }, [initialDailyWord, getUserDailyScore, user, discordClientUser, showErrorToast]);
+  }, [initialDailyWord, getUserDailyScore, user, discordClientUser, showErrorToast, isInsideDiscord]);
 
   // Loads data for an offline game.
   const loadOfflineGame = useCallback(async (isNew: boolean = false) => {
@@ -311,7 +313,8 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
     if (discordClientUser) {
       // If in Discord Client, use the API proxy to save the score.
       try {
-        const res = await fetch('/api/game/score', {
+        const apiUrl = new URL('/api/game/score', window.location.origin);
+        const res = await fetch(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(scoreDataForSaving),
