@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import * as admin from 'firebase-admin';
 
-// Force the use of the Node.js runtime for this route
+// Force the use of the Node.js runtime for this route because it uses server-side packages.
 export const runtime = 'nodejs';
 
 // Initialize Firebase Admin SDK if not already initialized.
@@ -9,9 +10,9 @@ if (admin.apps.length === 0) {
   admin.initializeApp();
 }
 
-export async function GET(request: NextRequest, { params }: { params: { filePath: string[] } }) {
+export async function GET(request: NextRequest, context: { params: { filePath: string[] } }) {
   try {
-    const filePath = params.filePath.join('/');
+    const filePath = context.params.filePath.join('/');
     const bucket = admin.storage().bucket(); // Get default bucket
     const file = bucket.file(filePath);
 
@@ -23,10 +24,10 @@ export async function GET(request: NextRequest, { params }: { params: { filePath
     const [metadata] = await file.getMetadata();
     const contentType = metadata.contentType || 'audio/mpeg';
     
-    // Get a readable stream from the file
+    // Get a readable stream from the file.
     const stream = file.createReadStream();
 
-    // Convert Node.js stream to a Web Stream for the NextResponse
+    // Convert the Node.js stream to a Web Stream for the NextResponse.
     const webStream = new ReadableStream({
       start(controller) {
         stream.on('data', (chunk) => controller.enqueue(chunk));
@@ -41,7 +42,8 @@ export async function GET(request: NextRequest, { params }: { params: { filePath
     return new NextResponse(webStream, {
       headers: {
         'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=31536000, immutable', // Cache for 1 year
+        // Cache the daily audio file for 24 hours.
+        'Cache-Control': 'public, max-age=86400, must-revalidate',
       },
     });
 
