@@ -9,7 +9,7 @@ import {
   useCallback,
 } from 'react';
 import type { ReactNode, ComponentType } from 'react';
-import type { User } from 'firebase/auth';
+import type { User, UserCredential } from 'firebase/auth';
 import { doc, onSnapshot, type Firestore } from 'firebase/firestore';
 import type { AuthDialogProps } from '@/components/auth/AuthDialog';
 import Cookies from 'js-cookie';
@@ -139,7 +139,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const { handleSignInWithDiscord } = await import('@/lib/discord-auth');
         const response = await handleSignInWithDiscord();
 
-        if (!response) return;
+        if (!response) {
+          setLoading(false);
+          return;
+        };
 
         if ('customToken' in response && typeof response.customToken === 'string') {
             // Standard browser flow: sign in with the custom token.
@@ -149,6 +152,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const clientAuth = response as DiscordClientAuthResponse;
             setDiscordClientUser(clientAuth.user);
             setHasPaid(clientAuth.hasPaid);
+
+            // Set the user's Discord Activity.
+            const sdk = await getDiscordSdk();
+            if (sdk) {
+              await setLinguilActivity(sdk);
+            }
+            setIsAuthDialogOpen(false);
         }
 
     } catch (error) {
@@ -168,15 +178,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsInsideDiscord(inDiscord);
 
     if (inDiscord) {
-      // Running inside the Discord client. We must set up the SDK to enable
-      // client-specific features, like setting the activity status.
-      const setupDiscordClient = async () => {
-        const sdk = await getDiscordSdk();
-        if (sdk) {
-          setLinguilActivity(sdk);
-        }
-      };
-      setupDiscordClient();
+      // Running inside the Discord client.
+      getDiscordSdk();
       setLoading(false); // The app is ready; further auth is user-initiated.
       return;
     }
@@ -299,13 +302,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // For redirect flow, userCredential will be null, and the onIdTokenChanged
       // listener will handle the result after the redirect.
       if (userCredential) {
-        const user = userCredential.user;
+        const user = (userCredential as UserCredential).user;
         const idTokenResult = await user.getIdTokenResult();
         const paidStatus = idTokenResult.claims.hasPaid === true;
         setUser(user);
         setHasPaid(paidStatus);
         Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1 });
-        const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser ?? false;
+        const isNewUser = getAdditionalUserInfo(userCredential as UserCredential)?.isNewUser ?? false;
         logEvent(isNewUser ? 'sign_up' : 'login', { method: 'google' });
         setIsAuthDialogOpen(false);
       }
