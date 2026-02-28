@@ -1,5 +1,4 @@
-import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import * as admin from 'firebase-admin';
 
 // Force the use of the Node.js runtime for this route because it uses server-side packages.
@@ -10,17 +9,11 @@ if (admin.apps.length === 0) {
   admin.initializeApp();
 }
 
-// Explicitly defining the type for the route context to resolve a build-time type error.
-type RouteContext = {
-  params: {
-    filePath: string[];
-  };
-};
-
 // GET handler for the audio proxy API route.
-export async function GET(request: NextRequest, context: RouteContext) {
+
+export const GET = async (request: NextRequest, { params }: { params: { filePath: string[] } }) => {
   try {
-    const filePath = context.params.filePath.join('/');
+    const filePath = params.filePath.join('/');
     const bucket = admin.storage().bucket();
     const file = bucket.file(filePath);
 
