@@ -10,10 +10,18 @@ if (admin.apps.length === 0) {
   admin.initializeApp();
 }
 
-export async function GET(request: NextRequest, context: { params: { filePath: string[] } }) {
+// Explicitly defining the type for the route context to resolve a build-time type error.
+type RouteContext = {
+  params: {
+    filePath: string[];
+  };
+};
+
+// GET handler for the audio proxy API route.
+export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const filePath = context.params.filePath.join('/');
-    const bucket = admin.storage().bucket(); // Get default bucket
+    const bucket = admin.storage().bucket();
     const file = bucket.file(filePath);
 
     const [exists] = await file.exists();
