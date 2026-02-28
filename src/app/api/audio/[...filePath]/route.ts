@@ -4,32 +4,25 @@ import * as admin from 'firebase-admin';
 // Force the use of the Node.js runtime for this route because it uses server-side packages.
 export const runtime = 'nodejs';
 
-// Defines the shape of the context object passed to a dynamic App Router route handler.
-type AppRouteHandlerFnContext = {
-  params?: Promise<{
-    filePath?: string[];
-  }>;
-};
-
 // Initialize Firebase Admin SDK if not already initialized.
 if (admin.apps.length === 0) {
   admin.initializeApp();
 }
 
 // GET handler for the audio proxy API route.
-
-export const GET = async (request: NextRequest, context: AppRouteHandlerFnContext) => {
+export const GET = async (
+  request: NextRequest,
+  { params }: { params: Promise<{ filePath: string[] }> }
+) => {
   try {
-    const params = await context.params;
-    const filePathParams = params?.filePath;
-
-    if (!filePathParams || !Array.isArray(filePathParams)) {
+    const { filePath } = await params;
+    if (!filePath || !Array.isArray(filePath)) {
       return new NextResponse('File path parameter is missing or invalid.', { status: 400 });
     }
 
-    const filePath = filePathParams.join('/');
+    const fullPath = filePath.join('/');
     const bucket = admin.storage().bucket();
-    const file = bucket.file(filePath);
+    const file = bucket.file(fullPath);
 
     const [exists] = await file.exists();
     if (!exists) {
