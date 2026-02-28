@@ -118,7 +118,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const signInWithCustomToken = useCallback(async (token: string): Promise<void> => {
-    if (isInsideDiscord) return;
     clearAuthError();
     try {
       const { getFirebaseAuth } = await import('@/lib/firebase/firebase');
@@ -131,7 +130,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       handleAuthError(error);
     }
-  }, [isInsideDiscord, clearAuthError, handleAuthError, logEvent]);
+  }, [clearAuthError, handleAuthError, logEvent]);
 
   const signInWithDiscord = useCallback(async (): Promise<void> => {
     clearAuthError();
@@ -169,19 +168,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsInsideDiscord(inDiscord);
 
     if (inDiscord) {
-      // Running inside the Discord client.
-      const initDiscordAuth = async () => {
-        // First, we authenticate the user with our backend via the Discord SDK.
-        await signInWithDiscord();
-        // After a successful sign-in, the Discord SDK will be authenticated.
-        // Now we can safely get the SDK instance and set the user's activity.
+      // Running inside the Discord client. We must set up the SDK to enable
+      // client-specific features, like setting the activity status.
+      const setupDiscordClient = async () => {
         const sdk = await getDiscordSdk();
         if (sdk) {
           setLinguilActivity(sdk);
         }
       };
-      initDiscordAuth();
-      return; // Stop here for Discord client.
+      setupDiscordClient();
+      setLoading(false); // The app is ready; further auth is user-initiated.
+      return;
     }
 
     // Standard browser environment.
@@ -292,21 +289,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Handles Google sign-in.
   const signInWithGoogle = useCallback(async (): Promise<void> => {
-    if (isInsideDiscord) return;
     clearAuthError();
     try {
       const { signInWithGoogle: signIn } = await import('@/lib/auth-actions');
       const { getAdditionalUserInfo } = await import('firebase/auth');
-      const userCredential = await signIn();
-      const user = userCredential.user;
-      const idTokenResult = await user.getIdTokenResult();
-      const paidStatus = idTokenResult.claims.hasPaid === true;
-      setUser(user);
-      setHasPaid(paidStatus);
-      Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1 });
-      const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser ?? false;
-      logEvent(isNewUser ? 'sign_up' : 'login', { method: 'google' });
-      setIsAuthDialogOpen(false);
+      const userCredential = await signIn(isInsideDiscord);
+
+      // For popup flow, process the credential immediately.
+      // For redirect flow, userCredential will be null, and the onIdTokenChanged
+      // listener will handle the result after the redirect.
+      if (userCredential) {
+        const user = userCredential.user;
+        const idTokenResult = await user.getIdTokenResult();
+        const paidStatus = idTokenResult.claims.hasPaid === true;
+        setUser(user);
+        setHasPaid(paidStatus);
+        Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1 });
+        const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser ?? false;
+        logEvent(isNewUser ? 'sign_up' : 'login', { method: 'google' });
+        setIsAuthDialogOpen(false);
+      }
     } catch (error) {
       handleAuthError(error);
     }
@@ -315,7 +317,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Handles email and password sign-in.
   const signInWithEmail = useCallback(
     async (email: string, password: string): Promise<boolean> => {
-      if (isInsideDiscord) return false;
       clearAuthError();
       if (!email || !password) {
         setAuthError('Missing email or password');
@@ -338,13 +339,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
     },
-    [isInsideDiscord, clearAuthError, handleAuthError, logEvent]
+    [clearAuthError, handleAuthError, logEvent]
   );
 
   // Handles new user sign-up.
   const signUpWithEmail = useCallback(
     async (name: string, email: string, password: string): Promise<boolean> => {
-      if (isInsideDiscord) return false;
       clearAuthError();
       if (!name.trim() || !email || !password) {
         setAuthError('Missing name, email or password');
@@ -367,13 +367,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
     },
-    [isInsideDiscord, clearAuthError, handleAuthError, logEvent]
+    [clearAuthError, handleAuthError, logEvent]
   );
 
   // Handles password reset requests.
   const resetPassword = useCallback(
     async (email: string): Promise<boolean> => {
-      if (isInsideDiscord) return false;
       clearAuthError();
       if (!email) {
         setAuthError('Email is required');
@@ -392,7 +391,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
     },
-    [isInsideDiscord, clearAuthError, handleAuthError, toast]
+    [clearAuthError, handleAuthError, toast]
   );
 
   // Handles user sign-out.
@@ -419,7 +418,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Dynamically loads and opens the authentication dialog.
   const openAuthDialog = useCallback(() => {
-    if (isInsideDiscord) return;
     if (AuthDialog) {
       setIsAuthDialogOpen(true);
     } else {
@@ -428,7 +426,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsAuthDialogOpen(true);
       });
     }
-  }, [AuthDialog, isInsideDiscord]);
+  }, [AuthDialog]);
 
   // The value provided to the AuthContext.
   const value = {

@@ -45,16 +45,22 @@ export const getAuthErrorMessage = (error: unknown): string => {
 };
 
 // Initiates the Google sign-in process.
-export const signInWithGoogle = async (): Promise<UserCredential> => {
+export const signInWithGoogle = async (isInsideDiscord: boolean): Promise<UserCredential | void> => {
   const { getFirebaseAuth } = await import('@/lib/firebase/firebase');
-  const { GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
+  const { GoogleAuthProvider, signInWithPopup, signInWithRedirect } = await import('firebase/auth');
   const auth = await getFirebaseAuth();
   const provider = new GoogleAuthProvider();
   provider.addScope('profile');
   provider.addScope('email');
   provider.setCustomParameters({ prompt: 'select_account' });
   try {
-    return await signInWithPopup(auth, provider);
+    if (isInsideDiscord) {
+      // In the Discord client, popups are blocked, so we use redirect-based auth.
+      return await signInWithRedirect(auth, provider);
+    } else {
+      // In a standard browser, we can use a popup.
+      return await signInWithPopup(auth, provider);
+    }
   } catch (error) {
     console.error("Detailed sign-in error:", error);
     throw error;
