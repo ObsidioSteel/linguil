@@ -6,9 +6,9 @@ export const runtime = 'nodejs';
 
 // Defines the shape of the context object passed to a dynamic App Router route handler.
 type AppRouteHandlerFnContext = {
-  params?: {
+  params?: Promise<{
     filePath?: string[];
-  };
+  }>;
 };
 
 // Initialize Firebase Admin SDK if not already initialized.
@@ -20,7 +20,9 @@ if (admin.apps.length === 0) {
 
 export const GET = async (request: NextRequest, context: AppRouteHandlerFnContext) => {
   try {
-    const filePathParams = context.params?.filePath;
+    const params = await context.params;
+    const filePathParams = params?.filePath;
+
     if (!filePathParams || !Array.isArray(filePathParams)) {
       return new NextResponse('File path parameter is missing or invalid.', { status: 400 });
     }
