@@ -4,6 +4,13 @@ import * as admin from 'firebase-admin';
 // Force the use of the Node.js runtime for this route because it uses server-side packages.
 export const runtime = 'nodejs';
 
+// Defines the shape of the context object passed to a dynamic App Router route handler.
+type AppRouteHandlerFnContext = {
+  params?: {
+    filePath?: string[];
+  };
+};
+
 // Initialize Firebase Admin SDK if not already initialized.
 if (admin.apps.length === 0) {
   admin.initializeApp();
@@ -11,9 +18,14 @@ if (admin.apps.length === 0) {
 
 // GET handler for the audio proxy API route.
 
-export const GET = async (request: NextRequest, { params }: { params: { filePath: string[] } }) => {
+export const GET = async (request: NextRequest, context: AppRouteHandlerFnContext) => {
   try {
-    const filePath = params.filePath.join('/');
+    const filePathParams = context.params?.filePath;
+    if (!filePathParams || !Array.isArray(filePathParams)) {
+      return new NextResponse('File path parameter is missing or invalid.', { status: 400 });
+    }
+
+    const filePath = filePathParams.join('/');
     const bucket = admin.storage().bucket();
     const file = bucket.file(filePath);
 
@@ -53,4 +65,4 @@ export const GET = async (request: NextRequest, { params }: { params: { filePath
     console.error(`[API/AUDIO] Error proxying audio file: ${errorMessage}`);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
-}
+};
