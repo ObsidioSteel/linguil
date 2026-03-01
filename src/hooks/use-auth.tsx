@@ -13,7 +13,6 @@ import type { User, UserCredential } from 'firebase/auth';
 import { doc, onSnapshot, type Firestore } from 'firebase/firestore';
 import type { AuthDialogProps } from '@/components/auth/AuthDialog';
 import Cookies from 'js-cookie';
-import { GlobalLoadingSpinner } from '@/components/common/GlobalLoadingSpinner';
 import { useToast } from './use-toast';
 import { getAuthErrorMessage } from '@/lib/auth-actions';
 import type { DiscordClientUser, DiscordClientAuthResponse } from '@/lib/discord-auth';
@@ -479,9 +478,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {/* Show a global spinner while loading, otherwise show children. */}
-      {loading ? <GlobalLoadingSpinner /> : children}
-      {/* Dynamically render the AuthDialog when needed. */}
+      {children}
       {AuthDialog && <AuthDialog open={isAuthDialogOpen} onOpenChange={setIsAuthDialogOpen} />}
     </AuthContext.Provider>
   );
