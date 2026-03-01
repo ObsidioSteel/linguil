@@ -1,6 +1,5 @@
 // Handles the entire Discord authentication process.
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import * as admin from "firebase-admin";
 import { getAuth, UserRecord } from 'firebase-admin/auth';
 
@@ -16,42 +15,38 @@ export async function POST(req: NextRequest) {
   const auth = getAuth();
 
   try {
-    const { code, access_token: directAccessToken, isFromDiscordClient } = await req.json();
-    let accessToken: string;
-
-    if (directAccessToken) {
-      // Use the access token provided directly from the Discord SDK.
-      accessToken = directAccessToken;
-    } else if (code) {
-      // 1. Exchange the authorization code for an access token from Discord.
-      const tokenRequestBody: { [key: string]: string } = {
-        client_id: process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!,
-        client_secret: process.env.DISCORD_CLIENT_SECRET!,
-        grant_type: 'authorization_code',
-        code,
-      };
-
-      if (!isFromDiscordClient) {
-        // The redirect_uri is only required for the standard browser OAuth flow.
-        tokenRequestBody.redirect_uri = process.env.DISCORD_REDIRECT_URI!;
-      }
-
-      const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams(tokenRequestBody),
-      });
-
-      if (!tokenResponse.ok) {
-        const error = await tokenResponse.json();
-        console.error('Discord token exchange failed:', error);
-        return new NextResponse(JSON.stringify({ message: 'Failed to authenticate with Discord.' }), { status: 500 });
-      }
-      const tokenData = await tokenResponse.json();
-      accessToken = tokenData.access_token;
-    } else {
-      return new NextResponse(JSON.stringify({ message: 'Authorization code or access token not provided.' }), { status: 400 });
+    const { code, isFromDiscordClient } = await req.json();
+    if (!code) {
+      return new NextResponse(JSON.stringify({ message: 'Authorization code not provided.' }), { status: 400 });
     }
+
+    // 1. Exchange the authorization code for an access token from Discord.
+    const tokenRequestBody: { [key: string]: string } = {
+      client_id: process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!,
+      client_secret: process.env.DISCORD_CLIENT_SECRET!,
+      grant_type: 'authorization_code',
+      code,
+    };
+
+    // The redirect_uri is only required for the standard browser OAuth flow.
+    // For the Discord client flow, it should be omitted.
+    if (!isFromDiscordClient) {
+      tokenRequestBody.redirect_uri = process.env.DISCORD_REDIRECT_URI!;
+    }
+
+    const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(tokenRequestBody),
+    });
+
+    if (!tokenResponse.ok) {
+      const error = await tokenResponse.json();
+      console.error('Discord token exchange failed:', error);
+      return new NextResponse(JSON.stringify({ message: 'Failed to authenticate with Discord.' }), { status: 500 });
+    }
+    const tokenData = await tokenResponse.json();
+    const accessToken = tokenData.access_token;
 
     // 2. Use the access token to get the user's profile from Discord.
     const userResponse = await fetch('https://discord.com/api/users/@me', {
@@ -98,22 +93,14 @@ export async function POST(req: NextRequest) {
 
     // 8. Handle the response based on the client type.
     if (isFromDiscordClient) {
-      // For the Discord client: Set a secure session cookie and return user data.
+      // For the Discord client: return the access token and user data.
       const { uid, displayName } = userRecord;
       const finalPhotoURL = userRecord.photoURL || photoURL;
       const hasPaid = userRecord.customClaims?.['hasPaid'] === true;
 
-      // Set a secure, http-only cookie for session management.
-      const cookieStore = await cookies();
-      cookieStore.set('session', uid, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 60 * 24 * 7, // 1 week
-      });
 
       return new NextResponse(JSON.stringify({
+        accessToken,
         user: { uid, displayName, photoURL: finalPhotoURL },
         hasPaid,
       }), { status: 200 });

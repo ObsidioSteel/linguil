@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import * as admin from 'firebase-admin';
-import { cookies } from 'next/headers';
+import { authenticateRequest } from '@/lib/api/auth-utils';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -8,16 +8,13 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-export async function GET(_req: Request) {
+export async function GET(req: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const session = cookieStore.get('session');
-
-    if (!session) {
-      return new NextResponse(JSON.stringify({ message: 'Unauthorized' }), { status: 401 });
+    const authResult = await authenticateRequest(req);
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
-
-    const uid = session.value;
+    const { uid } = authResult;
 
     // Get the user's private document to find their friends list
     const userDocRef = db.collection('users').doc(uid);

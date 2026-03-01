@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import * as admin from 'firebase-admin';
-import { cookies } from 'next/headers';
+import { authenticateRequest } from '@/lib/api/auth-utils';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -8,17 +8,15 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const { friendUid } = await req.json();
-    const cookieStore = await cookies();
-    const session = cookieStore.get('session');
-
-    if (!session) {
-      return new NextResponse(JSON.stringify({ message: 'Unauthorized' }), { status: 401 });
+    const authResult = await authenticateRequest(req);
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
+    const { uid } = authResult;
 
-    const uid = session.value;
+    const { friendUid } = await req.json();
 
     if (!friendUid || typeof friendUid !== 'string') {
         return new NextResponse(JSON.stringify({ message: 'Invalid friend UID provided' }), { status: 400 });

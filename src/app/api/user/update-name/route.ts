@@ -1,23 +1,21 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import * as admin from 'firebase-admin';
-import { cookies } from 'next/headers';
+import { authenticateRequest } from '@/lib/api/auth-utils';
 
 if (!admin.apps.length) {
   admin.initializeApp();
 }
 
 // This function handles updating a user's display name.
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const { newName } = await req.json();
-    const cookieStore = await cookies();
-    const session = cookieStore.get('session');
-
-    if (!session) {
-      return new NextResponse(JSON.stringify({ message: 'Unauthorized' }), { status: 401 });
+    const authResult = await authenticateRequest(req);
+    if (authResult instanceof NextResponse) {
+      return authResult;
     }
+    const { uid } = authResult;
 
-    const uid = session.value;
+    const { newName } = await req.json();
 
     if (!newName || typeof newName !== 'string' || !newName.trim()) {
         return new NextResponse(JSON.stringify({ message: 'Invalid name provided' }), { status: 400 });

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import * as admin from 'firebase-admin';
+import { authenticateRequest } from '@/lib/api/auth-utils';
 
 // Initialize Firebase Admin SDK if not already initialized.
 if (admin.apps.length === 0) {
@@ -18,13 +18,12 @@ export async function POST(req: NextRequest) {
   const db = admin.firestore();
 
   try {
-    // 1. Authenticate the user from the secure, http-only session cookie.
-    const cookieStore = await cookies();
-    const session = cookieStore.get('session');
-    if (!session?.value) {
-      return new NextResponse(JSON.stringify({ message: 'Unauthorized' }), { status: 401 });
+    // 1. Authenticate the user using the Firebase ID token from the cookie.
+    const authResult = await authenticateRequest(req);
+    if (authResult instanceof NextResponse) {
+      return authResult; // Return the unauthorized response
     }
-    const uid = session.value;
+    const { uid } = authResult;
 
     // 2. Validate the request body against the required structure.
     const body = await req.json();
