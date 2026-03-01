@@ -16,8 +16,6 @@ import Cookies from 'js-cookie';
 import { GlobalLoadingSpinner } from '@/components/common/GlobalLoadingSpinner';
 import { useToast } from './use-toast';
 import { getAuthErrorMessage } from '@/lib/auth-actions';
-import { getDiscordSdk } from '@/lib/discord';
-import { setLinguilActivity } from '@/lib/discord-activity';
 import type { DiscordClientUser, DiscordClientAuthResponse } from '@/lib/discord-auth';
 
 // Defines the cookie name for the Firebase ID token.
@@ -138,7 +136,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
         const { handleSignInWithDiscord } = await import('@/lib/discord-auth');
         const response = await handleSignInWithDiscord();
-
         if (!response) {
           setLoading(false);
           return;
@@ -152,13 +149,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const clientAuth = response as DiscordClientAuthResponse;
             setDiscordClientUser(clientAuth.user);
             setHasPaid(clientAuth.hasPaid);
-
-            // Set the user's Discord Activity.
-            const sdk = await getDiscordSdk();
-            if (sdk) {
-              await setLinguilActivity(sdk);
-            }
-            setIsAuthDialogOpen(false);
         }
 
     } catch (error) {
@@ -178,9 +168,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsInsideDiscord(inDiscord);
 
     if (inDiscord) {
-      // Running inside the Discord client.
-      getDiscordSdk();
-      setLoading(false); // The app is ready; further auth is user-initiated.
+      // Running inside the Discord client. Authorize and set activity on launch.
+      const setupActivity = async () => {
+        const { getDiscordSdk, setDiscordActivity } = await import('@/lib/discord');
+        const { authorizeDiscordActivity } = await import('@/lib/discord-auth');
+        const sdk = await getDiscordSdk();
+        if (sdk) {
+          const authorized = await authorizeDiscordActivity();
+          if (authorized) {
+            await setDiscordActivity(sdk);
+          }
+        }
+      };
+      setupActivity();
+      setLoading(false);
       return;
     }
 
@@ -235,6 +236,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     };
   }, [hasMounted]);
+
+  // This effect runs when the Discord user state changes.
+  useEffect(() => {
+    if (discordClientUser) {
+      // The user has successfully signed in via the Discord client.
+      setIsAuthDialogOpen(false);
+    }
+  }, [discordClientUser]);
 
   // Listens for real-time changes to the user's payment status in Firestore.
   useEffect(() => {

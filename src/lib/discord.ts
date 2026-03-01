@@ -42,31 +42,23 @@ export const getDiscordSdk = (): Promise<DiscordSDK | null> => {
   return sdkPromise;
 };
 
-export async function setupDiscordActivity() {
+export async function setDiscordActivity(sdk: DiscordSDK) {
   try {
-    console.log("Attempting to set up Discord activity...");
-    const sdk = await getDiscordSdk();
-    if (sdk) {
-      console.log("Discord SDK obtained, setting activity.");
-      
-      // Set the activity for the user
-      await sdk.commands.setActivity({
-        activity: {
-          details: "Guessing languages",
-          state: "In-Game",
-          timestamps: {
-            start: Date.now(),
-        },
-        assets: {
-            large_image: "linguil_logo",
-            large_text: "linguil | The daily language guessing game",
-        },
-        type: 0, // Playing
-        },
-      });
-    } else {
-      console.log("Discord SDK not available, skipping activity setup.");
-    }
+    // Set the activity for the user
+    await sdk.commands.setActivity({
+      activity: {
+        details: "Daily",
+        state: "Guessing languages",
+        timestamps: {
+          start: Date.now(),
+      },
+      assets: {
+          large_image: "icon",
+          large_text: "linguil | The daily language guessing game",
+      },
+      type: 0, // Playing
+      },
+    });
   } catch (error) {
     console.error("Failed to set Discord activity:", error);
   }

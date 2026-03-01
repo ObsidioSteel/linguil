@@ -17,7 +17,28 @@ export interface DiscordClientAuthResponse {
   hasPaid: boolean;
 }
 
-// Handles the Discord sign-in process.
+// This function's sole purpose is to get authorization for Rich Presence.
+export const authorizeDiscordActivity = async (): Promise<boolean> => {
+  const discordSdk = await getDiscordSdk();
+  if (!discordSdk) return false;
+
+  try {
+    await discordSdk.commands.authorize({
+      client_id: process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!,
+      response_type: 'code',
+      state: '',
+      prompt: 'none',
+      scope: ['rpc.activities.write'],
+    });
+    return true;
+  } catch (error) {
+    console.error("Failed to authorize Discord activity:", error);
+    return false;
+  }
+};
+
+
+// Handles the Discord sign-in process for user authentication.
 // Returns a `DiscordClientAuthResponse` when inside the client, otherwise null.
 export const handleSignInWithDiscord = async (): Promise<DiscordClientAuthResponse | null> => {
   const discordSdk = await getDiscordSdk();
@@ -31,13 +52,12 @@ export const handleSignInWithDiscord = async (): Promise<DiscordClientAuthRespon
         response_type: 'code',
         state: '',
         prompt: 'none',
-        scope: ['identify', 'guilds.join', 'rpc.activities.write'],
+        scope: ['identify', 'guilds.join'],
       });
 
       const apiUrl = new URL('/api/auth/discord', window.location.origin);
 
-      // Send the code to our backend, including a flag to indicate the request
-      // is from the Discord client.
+      // Send the code to our backend.
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -58,11 +78,12 @@ export const handleSignInWithDiscord = async (): Promise<DiscordClientAuthRespon
         return null;
     }
   } else {
+    // Standard browser flow (redirect to Discord auth page).
     const authUrl = new URL('https://discord.com/api/oauth2/authorize');
     authUrl.searchParams.set('client_id', process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!);
     authUrl.searchParams.set('redirect_uri', process.env.NEXT_PUBLIC_DISCORD_REDIRECT_URI!);
     authUrl.searchParams.set('response_type', 'code');
-    authUrl.searchParams.set('scope', 'identify guilds.join rpc.activities.write');
+    authUrl.searchParams.set('scope', 'identify guilds.join');
 
     window.location.href = authUrl.toString();
 
