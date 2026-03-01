@@ -234,7 +234,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         unsubscribe();
       }
     };
-  }, [hasMounted, signInWithDiscord]);
+  }, [hasMounted]);
 
   // Listens for real-time changes to the user's payment status in Firestore.
   useEffect(() => {
