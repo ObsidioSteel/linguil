@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect } from 'react';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -9,7 +8,6 @@ import dynamic from 'next/dynamic';
 import { DarkModeToggleSwitch } from '@/components/common/DarkModeToggleSwitch';
 import { Info } from 'lucide-react';
 import type { SVGProps } from 'react';
-import { getDiscordSdk, setDiscordActivity } from '@/lib/discord';
 
 // Dynamically import components to reduce the initial bundle size.
 const AuthButton = dynamic(() => import('@/components/auth/AuthButton').then(mod => mod.AuthButton), {
@@ -29,16 +27,6 @@ const GithubIcon = (props: SVGProps<SVGSVGElement>) => (
 
 // The main landing page, providing options to play, authenticate, toggle dark mode, view the Privacy Policy, and contribute.
 export default function HomePage() {
-  useEffect(() => {
-    const setupActivity = async () => {
-      const sdk = await getDiscordSdk();
-      if (sdk) {
-        await setDiscordActivity(sdk);
-      }
-    };
-    setupActivity();
-  }, []);
-
   return (
     <ErrorBoundary>
       <div className="flex flex-col min-h-screen">

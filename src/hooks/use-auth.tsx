@@ -136,19 +136,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
         const { handleSignInWithDiscord } = await import('@/lib/discord-auth');
         const response = await handleSignInWithDiscord();
+
         if (!response) {
           setLoading(false);
           return;
         };
 
-        if ('customToken' in response && typeof response.customToken === 'string') {
-            // Standard browser flow: sign in with the custom token.
-            await signInWithCustomToken(response.customToken);
-        } else if ('user' in response) {
-            // Discord client flow: set the user data directly.
+        if ('user' in response) {
+            // Discord Client flow: set user data and then set the activity.
             const clientAuth = response as DiscordClientAuthResponse;
             setDiscordClientUser(clientAuth.user);
             setHasPaid(clientAuth.hasPaid);
+            
+            // Now that we are authenticated and have the correct scopes, set the activity.
+            const { getDiscordSdk, setDiscordActivity } = await import('@/lib/discord');
+            const sdk = await getDiscordSdk();
+            if (sdk) {
+                await setDiscordActivity(sdk);
+            }
         }
 
     } catch (error) {
@@ -156,36 +161,47 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
         setLoading(false);
     }
-  }, [clearAuthError, handleAuthError, signInWithCustomToken]);
+  }, [clearAuthError, handleAuthError]);
 
   // This is the primary authentication effect.
   // It detects the environment (Discord client vs. browser) and initializes auth accordingly.
   useEffect(() => {
-    if (!hasMounted) return; // Prevent execution until the client has mounted, to avoid hydration errors.
+    if (!hasMounted) return; // Prevent execution until the client has mounted.
 
     const params = new URLSearchParams(window.location.search);
     const inDiscord = !!params.get('frame_id');
     setIsInsideDiscord(inDiscord);
 
     if (inDiscord) {
-      // Running inside the Discord client. Authorize and set activity on launch.
-      const setupActivity = async () => {
-        const { getDiscordSdk, setDiscordActivity } = await import('@/lib/discord');
-        const { authorizeDiscordActivity } = await import('@/lib/discord-auth');
-        const sdk = await getDiscordSdk();
-        if (sdk) {
-          const authorized = await authorizeDiscordActivity();
-          if (authorized) {
-            await setDiscordActivity(sdk);
+      // Inside the Discord client, attempt a silent sign-in on load.
+      const silentSignIn = async () => {
+          try {
+              const { handleSilentSignIn } = await import('@/lib/discord-auth');
+              const authResponse = await handleSilentSignIn();
+
+              if (authResponse) {
+                  // If silent sign-in is successful, update user state.
+                  setDiscordClientUser(authResponse.user);
+                  setHasPaid(authResponse.hasPaid);
+
+                  // Now that we are authenticated, set the activity.
+                  const { getDiscordSdk, setDiscordActivity } = await import('@/lib/discord');
+                  const sdk = await getDiscordSdk();
+                  if (sdk) {
+                      await setDiscordActivity(sdk);
+                  }
+              }
+          } catch (error) {
+              console.error("An unexpected error occurred during Discord silent sign-in:", error);
+          } finally {
+              setLoading(false);
           }
-        }
       };
-      setupActivity();
-      setLoading(false);
+      silentSignIn();
       return;
     }
 
-    // Standard browser environment.
+    // Standard browser environment authentication.
     let unsubscribe: (() => void) | undefined;
     const initializeAuth = async () => {
       try {
