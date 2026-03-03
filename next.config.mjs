@@ -23,9 +23,11 @@ const cspPolicies = {
   'connect-src': [
     "'self'",
     'https://discord.com',
+    'https://*.discord.com',
     'https://*.firebaseio.com',
     'wss://*.firebaseio.com',
     'https://*.googleapis.com',
+    'wss://*.googleapis.com',
     'https://firebaseperformance.googleapis.com',
     'https://identitytoolkit.googleapis.com',
     'https://accounts.google.com',
@@ -63,7 +65,7 @@ const cspPolicies = {
     'https://*.linguil.app'
   ],
   // Specifies the valid parents that may embed a page using <frame> or <iframe>.
-  'frame-ancestors': ["'self'", 'https://discord.com'],
+  'frame-ancestors': ["'self'", 'https://discord.com', 'https://*.discord.com'],
 };
 
 // Constructs a Content-Security-Policy string from a policy object.
