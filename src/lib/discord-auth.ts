@@ -14,6 +14,7 @@ export interface DiscordClientUser {
 // when authenticating from within the Discord client.
 export interface DiscordClientAuthResponse {
   accessToken: string; // The token to authenticate the SDK.
+  customToken: string;
   user: DiscordClientUser;
   hasPaid: boolean;
 }
@@ -26,6 +27,7 @@ async function authenticateWithBackend(discordSdk: any, authorizeSilently: boole
       client_id: process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!,
       response_type: 'code',
       state: '',
+      prompt: 'none',
       scope: ['identify', 'guilds.join', 'rpc.activities.write'],
     });
 

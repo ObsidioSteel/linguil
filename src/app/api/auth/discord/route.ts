@@ -92,21 +92,22 @@ export async function POST(req: NextRequest) {
     }
 
     // 8. Handle the response based on the client type.
+    const customToken = await auth.createCustomToken(userRecord.uid);
+
     if (isFromDiscordClient) {
-      // For the Discord client: return the access token and user data.
+      // For the Discord client: return the access token, custom token, and user data.
       const { uid, displayName } = userRecord;
       const finalPhotoURL = userRecord.photoURL || photoURL;
       const hasPaid = userRecord.customClaims?.['hasPaid'] === true;
 
-
       return new NextResponse(JSON.stringify({
         accessToken,
+        customToken,
         user: { uid, displayName, photoURL: finalPhotoURL },
         hasPaid,
       }), { status: 200 });
     } else {
       // For a standard browser: return a custom token for client-side sign-in.
-      const customToken = await auth.createCustomToken(userRecord.uid);
       return new NextResponse(JSON.stringify({ customToken }), { status: 200 });
     }
 
