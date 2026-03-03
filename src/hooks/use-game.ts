@@ -121,10 +121,24 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
 
   // Fetches the user's score for a specific day.
   const getUserDailyScore = useCallback(async (wordIdentifier: string) => {
-    if (isInsideDiscord) return null;
     const activeUser = user || discordClientUser;
     if (!activeUser) return null;
 
+    if (isInsideDiscord) {
+      // Backend fetch for Discord users.
+      try {
+        const response = await fetch(`/api/game/score?wordIdentifier=${wordIdentifier}`);
+        if (response.ok) {
+          const data = await response.json();
+          return data; // Returns { score, totalQuestions } or null.
+        }
+      } catch (error) {
+        console.error("Failed to fetch daily score from backend", error);
+      }
+      return null;
+    }
+
+    // Standard Firebase Client fetch for browser users.
     const { getFirebaseFirestore } = await import('@/lib/firebase/firebase');
     const { collection, query, where, getDocs } = await import('firebase/firestore');
     const db = await getFirebaseFirestore();
@@ -143,7 +157,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
     dispatch({ type: 'START_LOADING' });
 
     try {
-      const dailyWordData = initialDailyWord || await getDailyWordDataClient();
+      const dailyWordData = initialDailyWord || await getDailyWordDataClient(isInsideDiscord);
       if (!dailyWordData) throw new Error("Daily word data is unavailable");
 
       const { word, audioUrl, distractors, languageStats, date } = dailyWordData;
@@ -153,7 +167,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
       let finalScore: DailyScore | null = null;
       const activeUser = user || discordClientUser;
 
-      if (activeUser && !isInsideDiscord) {
+      if (activeUser) {
         const pendingScore = getPendingScore();
         if (pendingScore?.wordIdentifier === date) {
           const { getFirebaseFirestore } = await import('@/lib/firebase/firebase');

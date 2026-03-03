@@ -146,17 +146,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // Discord Client authentication: set user data and then set the activity.
           const clientAuth = response as DiscordClientAuthResponse;
             
-            // Authenticate with Firebase using the new customToken
-            await signInWithCustomToken(clientAuth.customToken);
+          // Manually set the cookie and the React state.
+          Cookies.set(FIREBASE_ID_TOKEN_COOKIE, clientAuth.idToken, { expires: 1 });
+          
+          // Manually mock the Firebase User object to satisfy the context type.
+          setUser({ 
+             uid: clientAuth.user.uid, 
+             displayName: clientAuth.user.displayName, 
+             photoURL: clientAuth.user.photoURL 
+          } as User); 
 
-            setDiscordClientUser(clientAuth.user);
-            setHasPaid(clientAuth.hasPaid);
+          setDiscordClientUser(clientAuth.user);
+          setHasPaid(clientAuth.hasPaid);
             
-            const { getDiscordSdk, setDiscordActivity } = await import('@/lib/discord');
-            const sdk = await getDiscordSdk();
-            if (sdk) {
-                await setDiscordActivity(sdk);
-            }
+          const { getDiscordSdk, setDiscordActivity } = await import('@/lib/discord');
+          const sdk = await getDiscordSdk();
+          if (sdk) {
+              await setDiscordActivity(sdk);
+          }
         }
 
     } catch (error) {
@@ -164,7 +171,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
         setLoading(false);
     }
-  }, [clearAuthError, handleAuthError, signInWithCustomToken]);
+  }, [clearAuthError, handleAuthError]);
 
   // This is the primary authentication effect.
   // It detects the environment (Discord client vs. browser) and initializes auth accordingly.
@@ -223,7 +230,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
     initializeAuth();
 
-    // 2. Execute embedded Discord logic in parallel
+    // 2. Execute embedded Discord logic in parallel.
     if (inDiscord) {
       const silentSignIn = async () => {
           try {
@@ -231,8 +238,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               const authResponse = await handleSilentSignIn();
 
               if (authResponse) {
-                  // Sign the user into Firebase.
-                  await signInWithCustomToken(authResponse.customToken); 
+                  Cookies.set(FIREBASE_ID_TOKEN_COOKIE, authResponse.idToken, { expires: 1 });
+                  setUser({ 
+                     uid: authResponse.user.uid, 
+                     displayName: authResponse.user.displayName, 
+                     photoURL: authResponse.user.photoURL 
+                  } as User);
 
                   setDiscordClientUser(authResponse.user);
                   setHasPaid(authResponse.hasPaid);
@@ -257,7 +268,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         unsubscribe();
       }
     };
-  }, [hasMounted, signInWithCustomToken]);
+  }, [hasMounted]);
 
   // This effect runs when the Discord user state changes.
   useEffect(() => {
@@ -267,59 +278,86 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [discordClientUser]);
 
-  // Listens for real-time changes to the user's payment status in Firestore.
+  // Listens for real-time changes to the user's payment status.
   useEffect(() => {
-    if (!user || isInsideDiscord) return;
+    const currentUid = user?.uid || discordClientUser?.uid;
+    if (!currentUid) return;
 
-    let unsubscribe: (() => void) | undefined;
+    if (isInsideDiscord) {
+      // Discord: Use secure backend polling as the Firestore client SDK is not authenticated.
+      let isSubscribed = true;
+      let pollInterval: NodeJS.Timeout;
 
-    const initializeFirestore = async () => {
-      try {
-        // Initialize Firestore if it hasn't been already.
-        if (!dbRef.current) {
-          const { getFirebaseFirestore } = await import('@/lib/firebase/firebase');
-          dbRef.current = await getFirebaseFirestore();
-        }
-        const userDocRef = doc(dbRef.current, 'users', user.uid);
-        // Listen for snapshot changes on the user's document.
-        unsubscribe = onSnapshot(userDocRef, (docSnap) => {
-          if (docSnap.exists()) {
-            const serverHasPaid = docSnap.data().hasPaid === true;
-            // Sync local `hasPaid` state if it differs from the server.
-            if (hasPaid !== serverHasPaid) {
-              setHasPaid(serverHasPaid);
-              // Update user properties in analytics.
-              import('@/lib/firebase/firebase').then(({ getFirebaseAnalytics }) => {
-                getFirebaseAnalytics().then(analytics => {
-                  if(analytics && !isInsideDiscord) {
-                    import('firebase/analytics').then(({ setUserProperties }) => {
-                      setUserProperties(analytics, { has_paid: serverHasPaid });
-                    });
-                  }
-                })
-              });
+      const fetchUserProfile = async (): Promise<void> => {
+        try {
+          const response = await fetch('/api/user/me');
+          if (response.ok && isSubscribed) {
+            const data = await response.json();
+            if (hasPaid !== data.hasPaid) {
+              setHasPaid(data.hasPaid);
             }
           }
-        });
+        } catch (error) {
+          console.error("Failed to sync user profile from backend:", error);
+        }
+      };
 
-        // Add the unsubscribe function to the sign-out cleanup.
-        addSignOutCleanup(unsubscribe);
+      fetchUserProfile();
+      pollInterval = setInterval(fetchUserProfile, 30000); // 30 seconds
 
-      } catch {
-        setAuthError("Failed to connect to user database");
-      }
-    }
-
-    initializeFirestore();
+      return () => {
+        isSubscribed = false;
+        clearInterval(pollInterval);
+      };
+    } else {
+      // Browser: Use an onSnapshot listener with the authenticated Firestore client SDK.
+      let unsubscribe: (() => void) | undefined;
+      const initializeFirestore = async () => {
+        try {
+          if (!dbRef.current) {
+            const { getFirebaseFirestore } = await import('@/lib/firebase/firebase');
+            dbRef.current = await getFirebaseFirestore();
+          }
+          const userDocRef = doc(dbRef.current, 'users', currentUid);
+          // Listen for snapshot changes on the user's document.
+          unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+              const serverHasPaid = docSnap.data().hasPaid === true;
+              // Sync local `hasPaid` state if it differs from the server.
+              if (hasPaid !== serverHasPaid) {
+                setHasPaid(serverHasPaid);
+                // Update user properties in analytics.
+                import('@/lib/firebase/firebase').then(({ getFirebaseAnalytics }) => {
+                  getFirebaseAnalytics().then(analytics => {
+                    if (analytics) {
+                      import('firebase/analytics').then(({ setUserProperties }) => {
+                        setUserProperties(analytics, { has_paid: serverHasPaid });
+                      });
+                    }
+                  });
+                });
+              }
+            }
+          });
+          
+          // Add the unsubscribe function to the sign-out cleanup.
+          addSignOutCleanup(unsubscribe);
+        } catch {
+          setAuthError("Failed to connect to user database");
+        }
+      };
+      initializeFirestore();
 
     // Cleanup the listener on component unmount or when the user changes.
-    return () => {
-      if (unsubscribe) {
-        unsubscribe(); 
-        removeSignOutCleanup(unsubscribe);
-      }
-    };
-  }, [user, hasPaid, isInsideDiscord, addSignOutCleanup, removeSignOutCleanup]);
+      return () => {
+        if (unsubscribe) {
+          unsubscribe();
+          removeSignOutCleanup(unsubscribe);
+        }
+      };
+    }
+  }, [user, discordClientUser, isInsideDiscord, hasPaid, addSignOutCleanup, removeSignOutCleanup]);
+
 
   // Handles Google sign-in.
   const signInWithGoogle = useCallback(async (): Promise<void> => {
@@ -429,19 +467,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 
   // Handles user sign-out.
-  const logout = async (): Promise<void> => {
+  const logout = useCallback(async (): Promise<void> => {
     try {
       // Run all registered cleanup functions.
       signOutCleanup.current.forEach((cleanup) => cleanup());
       signOutCleanup.current = [];
       
-      // Clear Discord local state on logout.
+      // Clear Discord local state, mocked user state and session cookie.
       if (isInsideDiscord) {
         setDiscordClientUser(null);
+        setUser(null);
+        Cookies.remove(FIREBASE_ID_TOKEN_COOKIE);
       }
       
       // Sign out of Firebase.
-      const { handleSignOut } = await import('@/lib/auth-actions');
+      const { handleSignOut }: { handleSignOut: () => Promise<void> } = await import('@/lib/auth-actions');
       await handleSignOut();
     } catch {
       toast({
@@ -450,7 +490,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         variant: 'destructive',
       });
     }
-  };
+  }, [isInsideDiscord, toast]);
 
   // Dynamically loads and opens the authentication dialog.
   const openAuthDialog = useCallback(() => {

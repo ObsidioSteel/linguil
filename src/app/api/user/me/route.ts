@@ -1,0 +1,31 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { authenticateRequest } from '@/lib/api/auth-utils';
+import * as admin from 'firebase-admin';
+
+export async function GET(req: NextRequest) {
+  // Verify the HTTPOnly cookie.
+  const authResult = await authenticateRequest(req);
+  if (authResult instanceof NextResponse) {
+    return authResult; // Returns 401 Unauthorized if cookie is missing/invalid.
+  }
+
+  try {
+    const db = admin.firestore();
+    const userDoc = await db.collection('users').doc(authResult.uid).get();
+
+    if (!userDoc.exists) {
+      return NextResponse.json({ message: 'User not found' }, { status: 404 });
+    }
+
+    const userData = userDoc.data();
+    
+    // Return user payment status.
+    return NextResponse.json({
+      hasPaid: userData?.hasPaid === true,
+    }, { status: 200 });
+
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+  }
+}

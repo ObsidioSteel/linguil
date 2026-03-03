@@ -15,6 +15,7 @@ export interface DiscordClientUser {
 export interface DiscordClientAuthResponse {
   accessToken: string; // The token to authenticate the SDK.
   customToken: string;
+  idToken: string;
   user: DiscordClientUser;
   hasPaid: boolean;
 }

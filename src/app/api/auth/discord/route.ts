@@ -95,7 +95,27 @@ export async function POST(req: NextRequest) {
     const customToken = await auth.createCustomToken(userRecord.uid);
 
     if (isFromDiscordClient) {
-      // For the Discord client: return the access token, custom token, and user data.
+      // Exchange the custom token for an ID token on the server.
+      const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+      let idToken = customToken;
+
+      try {
+        const idTokenRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: customToken, returnSecureToken: true }),
+        });
+        
+        if (idTokenRes.ok) {
+          const idTokenData = await idTokenRes.json();
+          idToken = idTokenData.idToken;
+        } else {
+          console.error("Failed to exchange custom token for ID token on backend");
+        }
+      } catch (err) {
+        console.error("Backend identity toolkit fetch error:", err);
+      }
+
       const { uid, displayName } = userRecord;
       const finalPhotoURL = userRecord.photoURL || photoURL;
       const hasPaid = userRecord.customClaims?.['hasPaid'] === true;
@@ -103,6 +123,7 @@ export async function POST(req: NextRequest) {
       return new NextResponse(JSON.stringify({
         accessToken,
         customToken,
+        idToken,
         user: { uid, displayName, photoURL: finalPhotoURL },
         hasPaid,
       }), { status: 200 });

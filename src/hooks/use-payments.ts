@@ -38,7 +38,7 @@ const paymentsReducer = (state: PaymentsState, action: PaymentsAction): Payments
 
 // Custom hook for handling Stripe payment checkout sessions.
 export const usePayments = () => {
-  const { user } = useAuth(); // Get the current user from auth context.
+  const { user, isInsideDiscord } = useAuth(); // Get the current user from auth context.
   const [state, dispatch] = useReducer(paymentsReducer, initialState); // Manage payment processing state.
   const { toast } = useToast(); // Access the toast notification system.
 
@@ -70,19 +70,23 @@ export const usePayments = () => {
       
       const cancelUrl = window.location.origin; // Set the cancellation URL.
 
-      const idToken = await user.getIdToken();
+      // Only attempt to get the ID token if NOT inside Discord.
+      let authHeaders: HeadersInit = { 'Content-Type': 'application/json' };
+      
+      if (!isInsideDiscord) {
+        const idToken = await user.getIdToken();
+        authHeaders['Authorization'] = `Bearer ${idToken}`;
+      }
 
-      // Call the proxy API route with the necessary parameters (to fix Safari cross-origin issues).
+      // Call the proxy API route with the necessary parameters.
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`,
-        },
+        headers: authHeaders,
         body: JSON.stringify({
           priceId,
           successUrl: finalUrl.toString(),
           cancelUrl,
+          isInsideDiscord,
         }),
       });
 
@@ -105,7 +109,7 @@ export const usePayments = () => {
       dispatch({ type: 'PROCESS_ERROR', payload: errorMessage });
       showErrorToast("Payment error", err.message || errorMessage);
     }
-  }, [showErrorToast, user]);
+  }, [showErrorToast, user, isInsideDiscord]);
 
   // Return the payment state and the checkout session function.
   return { ...state, createCheckoutSession };

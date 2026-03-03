@@ -62,3 +62,34 @@ export async function POST(req: NextRequest) {
     return new NextResponse(JSON.stringify({ message: 'Error saving score' }), { status: 500 });
   }
 }
+
+export async function GET(req: NextRequest) {
+  const db = admin.firestore();
+
+  try {
+    const authResult = await authenticateRequest(req);
+    if (authResult instanceof NextResponse) return authResult;
+    const { uid } = authResult;
+
+    // Extract the wordIdentifier from the query string.
+    const url = new URL(req.url);
+    const wordIdentifier = url.searchParams.get('wordIdentifier');
+
+    if (!wordIdentifier) {
+      return new NextResponse(JSON.stringify({ message: 'Missing wordIdentifier' }), { status: 400 });
+    }
+
+    const dailyScoreDocRef = db.collection('users').doc(uid).collection('dailyScores').doc(wordIdentifier);
+    const docSnap = await dailyScoreDocRef.get();
+
+    if (docSnap.exists) {
+      const data = docSnap.data();
+      return NextResponse.json({ score: data?.score, totalQuestions: data?.totalQuestions }, { status: 200 });
+    } else {
+      return NextResponse.json(null, { status: 200 }); // User hasn't played yet.
+    }
+  } catch (error) {
+    console.error(`[API/GAME/SCORE] Error fetching score:`, error);
+    return new NextResponse(JSON.stringify({ message: 'Error fetching score' }), { status: 500 });
+  }
+}
