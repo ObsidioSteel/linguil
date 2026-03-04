@@ -127,6 +127,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signInWithDiscord = useCallback(async (): Promise<void> => {
     clearAuthError();
     setLoading(true);
+    let requiresReload = false;
+    
     try {
         const { handleSignInWithDiscord } = await import('@/lib/discord-auth');
         const response = await handleSignInWithDiscord();
@@ -134,7 +136,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!response) {
           setLoading(false);
           return;
-        };
+        }
 
         if ('user' in response) {
           // Discord Client authentication: set user data and then set the activity.
@@ -163,12 +165,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error: any) {
         // If the Discord SDK is already authorized, trigger a quick reload to sync states.
         if (error.message === "ALREADY_AUTHENTICATED_RELOAD_REQUIRED") {
-            window.location.reload();
+            requiresReload = true;
+            window.location.href = window.location.href;
             return;
         }
         handleAuthError(error);
     } finally {
-        setLoading(false);
+        if (!requiresReload) {
+            setLoading(false);
+        }
     }
   }, [clearAuthError, handleAuthError]);
 
@@ -289,6 +294,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const fetchUserProfile = async (): Promise<void> => {
         try {
+          // Prevent ghost requests on sign-out to stop 401 console errors.
+          if (!Cookies.get(FIREBASE_ID_TOKEN_COOKIE)) return;
+
           const response = await fetch('/api/user/me');
           if (response.ok && isSubscribed) {
             const data = await response.json();
