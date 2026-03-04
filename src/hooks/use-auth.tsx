@@ -137,7 +137,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         };
 
         if ('user' in response) {
-            // Discord Client authentication: set user data and then set the activity.
+          // Discord Client authentication: set user data and then set the activity.
           const clientAuth = response as DiscordClientAuthResponse;
             
           // Manually set the cookie and the React state.
@@ -161,6 +161,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
     } catch (error: any) {
+        // If the Discord SDK is already authorized, trigger a quick reload to sync states.
+        if (error.message === "ALREADY_AUTHENTICATED_RELOAD_REQUIRED") {
+            window.location.reload();
+            return;
+        }
         handleAuthError(error);
     } finally {
         setLoading(false);
