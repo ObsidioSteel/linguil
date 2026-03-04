@@ -46,7 +46,7 @@ export type AuthDialogProps = {
 
 // The main authentication dialog, memoized for performance.
 const AuthDialog = memo(({ open, onOpenChange }: AuthDialogProps) => {
-  const { clearAuthError } = useAuth();
+  const { clearAuthError, isGooglePolling, cancelGooglePolling } = useAuth();
   const [view, setView] = useState<AuthView>('selector');
   const dialogContentRef = useRef<HTMLDivElement>(null);
 
@@ -81,6 +81,22 @@ const AuthDialog = memo(({ open, onOpenChange }: AuthDialogProps) => {
 
   // Render the current authentication view.
   const renderContent = () => {
+    // Interceptor for the Google polling state.
+    if (isGooglePolling) {
+      return (
+        <div className="flex flex-col items-center justify-center p-6 text-center h-[220px]">
+          <LoadingSpinner />
+          <p className="mt-4 font-semibold text-lg text-gray-800">Awaiting Sign-In...</p>
+          <p className="text-sm text-gray-600 mt-2">
+            Complete Google sign-in in default browser
+          </p>
+          <button onClick={cancelGooglePolling} className="mt-4 text-xs text-blue-500 hover:underline">
+            Cancel
+          </button>
+        </div>
+      );
+    }
+
     switch (view) {
       case 'email':
         return <EmailAuthForm onShowPasswordReset={() => setView('reset')} />;
@@ -97,7 +113,7 @@ const AuthDialog = memo(({ open, onOpenChange }: AuthDialogProps) => {
       <DialogContent
         ref={dialogContentRef}
         hideCloseButton
-        className="w-[calc(100%-2rem)] max-w-[425px] p-4 sm:p-6"
+        className="w-[calc(100%-2rem)] max-w-[425px] p-4 sm:p-6 bg-white rounded-lg shadow-md"
       >
         {/* Hidden title and description for screen readers. */}
         <VisuallyHidden>

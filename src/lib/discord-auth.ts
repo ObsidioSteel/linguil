@@ -22,15 +22,34 @@ export interface DiscordClientAuthResponse {
 
 // Core Discord Client authentication logic.
 async function authenticateWithBackend(discordSdk: any, authorizeSilently: boolean): Promise<DiscordClientAuthResponse | null> {
+  let code: string | null = null;
+
   try {
     // 1. Authorize with the Discord client to get a code.
-    const { code } = await discordSdk.commands.authorize({
+    const authResult = await discordSdk.commands.authorize({
       client_id: process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!,
       response_type: 'code',
       state: '',
       prompt: 'none',
       scope: ['identify', 'guilds.join', 'rpc.activities.write'],
     });
+    code = authResult.code;
+  } catch (error: any) {
+    if (error.code === 4002 && !authorizeSilently) {
+      throw new Error("ALREADY_AUTHENTICATED_RELOAD_REQUIRED");
+    }
+
+    if (authorizeSilently) {
+      console.warn("Silent Discord SDK authorization failed. This is expected for new users.", error);
+      return null;
+    } else {
+      console.error("Discord SDK authorization failed:", error);
+      return null;
+    }
+  }
+
+  try {
+    if (!code) throw new Error("No authorization code received.");
 
     const apiUrl = new URL('/api/auth/discord', window.location.origin);
 
@@ -59,18 +78,11 @@ async function authenticateWithBackend(discordSdk: any, authorizeSilently: boole
     return authResponse;
 
   } catch (error) {
-    if (authorizeSilently) {
-      // This catch block is important for the silent flow. The `authorize` command
-      // throws an error if the user has not previously authorized the app.
-      // We catch this and fail silently, so we just log it and return null.
-      console.warn("Silent Discord SDK authorization failed. This is expected for new users.", error);
-      return null;
-    } else {
-      console.error("Discord SDK authorization failed:", error);
-      return null;
-    }
+     console.error("Backend auth or SDK authentication failed:", error);
+     throw error; // Re-throw so the UI can catch it.
   }
 }
+
 
 // Attempts a silent authentication on app launch inside the Discord client.
 // It will only succeed if the user has previously authorized the app.

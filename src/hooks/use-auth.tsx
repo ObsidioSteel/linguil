@@ -29,6 +29,8 @@ interface AuthContextType {
   authError: string | null; // Stores any authentication-related error messages.
   hasPaid: boolean; // Indicates if the user has a paid subscription.
   isInsideDiscord: boolean; // Indicates if the app is inside the Discord client.
+  isGooglePolling: boolean;
+  cancelGooglePolling: () => void;
   signInWithGoogle: () => Promise<void>; // Function to initiate Google sign-in.
   signInWithDiscord: () => Promise<void>; // Function to initiate Discord sign-in.
   signInWithCustomToken: (token: string) => Promise<void>; // Function to sign in with a custom token.
@@ -70,6 +72,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isInsideDiscord, setIsInsideDiscord] = useState(false);
   // State to prevent hydration errors by delaying client-side logic.
   const [hasMounted, setHasMounted] = useState(false);
+  const [isGooglePolling, setIsGooglePolling] = useState(false);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const cancelGooglePolling = useCallback(() => {
+    setIsGooglePolling(false);
+    if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+  }, []);
 
   useEffect(() => {
     setHasMounted(true);
@@ -147,7 +156,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const clientAuth = response as DiscordClientAuthResponse;
             
           // Manually set the cookie and the React state.
-          Cookies.set(FIREBASE_ID_TOKEN_COOKIE, clientAuth.idToken, { expires: 1 });
+          Cookies.set(FIREBASE_ID_TOKEN_COOKIE, clientAuth.idToken, { expires: 1, secure: true, sameSite: 'none' });
           
           // Manually mock the Firebase User object to satisfy the context type.
           setUser({ 
@@ -166,7 +175,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         }
 
-    } catch (error) {
+    } catch (error: any) {
+        if (error.message === "ALREADY_AUTHENTICATED_RELOAD_REQUIRED") {
+            // Force a page reload. Discord will re-initialize the iframe, 
+            // trigger the silent sign-in automatically, and restore the session.
+            window.location.reload();
+            return;
+        }
         handleAuthError(error);
     } finally {
         setLoading(false);
@@ -200,7 +215,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser(currentUser);
             setHasPaid(paidStatus);
             if (!inDiscord) {
-              Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1 });
+              Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1, secure: true, sameSite: 'none' });
             }
             try {
               const { getFirebaseAnalytics } = await import('@/lib/firebase/firebase');
@@ -238,7 +253,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               const authResponse = await handleSilentSignIn();
 
               if (authResponse) {
-                  Cookies.set(FIREBASE_ID_TOKEN_COOKIE, authResponse.idToken, { expires: 1 });
+                  Cookies.set(FIREBASE_ID_TOKEN_COOKIE, authResponse.idToken, { expires: 1, secure: true, sameSite: 'none' });
                   setUser({ 
                      uid: authResponse.user.uid, 
                      displayName: authResponse.user.displayName, 
@@ -363,84 +378,144 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signInWithGoogle = useCallback(async (): Promise<void> => {
     clearAuthError();
     try {
-      const { signInWithGoogle: signIn } = await import('@/lib/auth-actions');
-      const { getAdditionalUserInfo } = await import('firebase/auth');
-      const userCredential = await signIn(isInsideDiscord);
+      if (isInsideDiscord) {
+        // Discord: Open external browser and poll.
+        setIsGooglePolling(true);
+        const sessionId = crypto.randomUUID();
 
-      // For popup flow, process the credential immediately.
-      // For redirect flow, userCredential will be null, and the onIdTokenChanged
-      // listener will handle the result after the redirect.
-      if (userCredential) {
-        const user = (userCredential as UserCredential).user;
-        const idTokenResult = await user.getIdTokenResult();
-        const paidStatus = idTokenResult.claims.hasPaid === true;
-        setUser(user);
-        setHasPaid(paidStatus);
-        Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1 });
-        const isNewUser = getAdditionalUserInfo(userCredential as UserCredential)?.isNewUser ?? false;
-        logEvent(isNewUser ? 'sign_up' : 'login', { method: 'google' });
-        setIsAuthDialogOpen(false);
+        // Register session in backend.
+        await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'create', sessionId })
+        });
+
+        // Open user's desktop browser.
+        const { openExternalLink } = await import('@/lib/discord');
+        await openExternalLink(`${window.location.origin}/auth/google/external?session=${sessionId}`);
+
+        // Start polling for completion.
+        pollingIntervalRef.current = setInterval(async () => {
+          const res = await fetch(`/api/auth/session?sessionId=${sessionId}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.status === 'completed') {
+              clearInterval(pollingIntervalRef.current!);
+              setIsGooglePolling(false);
+              
+              // If login is successful, apply credentials locally.
+              Cookies.set(FIREBASE_ID_TOKEN_COOKIE, data.idToken, { expires: 1, secure: true, sameSite: 'none' });
+              setUser(data.user as User);
+              setIsAuthDialogOpen(false);
+            }
+          }
+        }, 2500);
+
+      } else {
+        // Browser: Use the Firebase SDK.
+        const { signInWithGoogle: signIn }: { signInWithGoogle: (isInsideDiscord: boolean) => Promise<UserCredential | void> } = await import('@/lib/auth-actions');
+        const { getAdditionalUserInfo } = await import('firebase/auth');
+        const userCredential = await signIn(false);
+
+        if (userCredential) {
+          const user = (userCredential as UserCredential).user;
+          const idTokenResult = await user.getIdTokenResult();
+          const paidStatus = idTokenResult.claims.hasPaid === true;
+          setUser(user);
+          setHasPaid(paidStatus);
+          Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1, secure: true, sameSite: 'none' });
+          const isNewUser = getAdditionalUserInfo(userCredential as UserCredential)?.isNewUser ?? false;
+          logEvent(isNewUser ? 'sign_up' : 'login', { method: 'google' });
+          setIsAuthDialogOpen(false);
+        }
       }
     } catch (error) {
+      setIsGooglePolling(false);
       handleAuthError(error);
     }
   }, [isInsideDiscord, clearAuthError, handleAuthError, logEvent]);
 
   // Handles email and password sign-in.
-  const signInWithEmail = useCallback(
-    async (email: string, password: string): Promise<boolean> => {
-      clearAuthError();
-      if (!email || !password) {
-        setAuthError('Missing email or password');
-        return false;
-      }
-      try {
+    const signInWithEmail = useCallback(async (email: string, password: string): Promise<boolean> => {
+    clearAuthError();
+    if (!email || !password) {
+      setAuthError('Missing email or password');
+      return false;
+    }
+    try {
+      if (isInsideDiscord) {
+        // Discord
+        const response = await fetch('/api/auth/email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'login', email, password })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Login failed");
+
+        Cookies.set(FIREBASE_ID_TOKEN_COOKIE, data.idToken, { expires: 1, secure: true, sameSite: 'none' });
+        setUser(data.user as User);
+        setIsAuthDialogOpen(false);
+        return true;
+      } else {
+        // Browser
         const { handleSignInWithEmail } = await import('@/lib/auth-actions');
         const userCredential = await handleSignInWithEmail(email, password);
         const user = userCredential.user;
         const idTokenResult = await user.getIdTokenResult();
-        const paidStatus = idTokenResult.claims.hasPaid === true;
         setUser(user);
-        setHasPaid(paidStatus);
-        Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1 });
+        setHasPaid(idTokenResult.claims.hasPaid === true);
+        Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1, secure: true, sameSite: 'none' });
         logEvent('login', { method: 'email' });
         setIsAuthDialogOpen(false);
         return true;
-      } catch (error) {
-        handleAuthError(error);
-        return false;
       }
-    },
-    [clearAuthError, handleAuthError, logEvent]
-  );
+    } catch (error) {
+      handleAuthError(error);
+      return false;
+    }
+  }, [isInsideDiscord, clearAuthError, handleAuthError, logEvent]);
 
   // Handles new user sign-up.
-  const signUpWithEmail = useCallback(
-    async (name: string, email: string, password: string): Promise<boolean> => {
-      clearAuthError();
-      if (!name.trim() || !email || !password) {
-        setAuthError('Missing name, email or password');
-        return false;
-      }
-      try {
+  const signUpWithEmail = useCallback(async (name: string, email: string, password: string): Promise<boolean> => {
+    clearAuthError();
+    if (!name.trim() || !email || !password) {
+      setAuthError('Missing name, email or password');
+      return false;
+    }
+    try {
+      if (isInsideDiscord) {
+         // Discord
+        const response = await fetch('/api/auth/email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'signup', email, password, name })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Signup failed");
+
+        Cookies.set(FIREBASE_ID_TOKEN_COOKIE, data.idToken, { expires: 1, secure: true, sameSite: 'none' });
+        setUser(data.user as User);
+        setIsAuthDialogOpen(false);
+        return true;
+      } else {
+        // Browser
         const { handleSignUpWithEmail } = await import('@/lib/auth-actions');
         const userCredential = await handleSignUpWithEmail(name, email, password);
         const user = userCredential.user;
         const idTokenResult = await user.getIdTokenResult();
-        const paidStatus = idTokenResult.claims.hasPaid === true;
         setUser(user);
-        setHasPaid(paidStatus);
-        Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1 });
+        setHasPaid(idTokenResult.claims.hasPaid === true);
+        Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1, secure: true, sameSite: 'none' });
         logEvent('sign_up', { method: 'email' });
         setIsAuthDialogOpen(false);
         return true;
-      } catch (error) {
-        handleAuthError(error);
-        return false;
       }
-    },
-    [clearAuthError, handleAuthError, logEvent]
-  );
+    } catch (error) {
+      handleAuthError(error);
+      return false;
+    }
+  }, [isInsideDiscord, clearAuthError, handleAuthError, logEvent]);
 
   // Handles password reset requests.
   const resetPassword = useCallback(
@@ -512,6 +587,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     authError,
     hasPaid,
     isInsideDiscord,
+    isGooglePolling,
+    cancelGooglePolling,
     signInWithGoogle,
     signInWithDiscord,
     signInWithCustomToken,
