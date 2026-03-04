@@ -26,25 +26,25 @@ async function authenticateWithBackend(discordSdk: any, authorizeSilently: boole
 
   try {
     // 1. Authorize with the Discord client to get a code.
-    const authResult = await discordSdk.commands.authorize({
+    const authorizePayload: any = {
       client_id: process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!,
       response_type: 'code',
       state: '',
-      prompt: 'none',
       scope: ['identify', 'guilds.join', 'rpc.activities.write'],
-    });
-    code = authResult.code;
-  } catch (error: any) {
-    if (error.code === 4002 && !authorizeSilently) {
-      throw new Error("ALREADY_AUTHENTICATED_RELOAD_REQUIRED");
+    };
+    if (authorizeSilently) {
+      authorizePayload.prompt = 'none';
     }
 
+    const authResult = await discordSdk.commands.authorize(authorizePayload);
+    code = authResult.code;
+  } catch (error: any) {
     if (authorizeSilently) {
       console.warn("Silent Discord SDK authorization failed. This is expected for new users.", error);
       return null;
     } else {
       console.error("Discord SDK authorization failed:", error);
-      return null;
+      throw new Error(error.message || "Failed to authorize with Discord.");
     }
   }
 
@@ -79,7 +79,7 @@ async function authenticateWithBackend(discordSdk: any, authorizeSilently: boole
 
   } catch (error) {
      console.error("Backend auth or SDK authentication failed:", error);
-     throw error; // Re-throw so the UI can catch it.
+     throw error;
   }
 }
 

@@ -145,9 +145,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
           // Manually mock the Firebase User object to satisfy the context type.
           setUser({ 
-             uid: clientAuth.user.uid, 
-             displayName: clientAuth.user.displayName, 
-             photoURL: clientAuth.user.photoURL 
+              uid: clientAuth.user.uid, 
+              displayName: clientAuth.user.displayName, 
+              photoURL: clientAuth.user.photoURL 
           } as User); 
 
           setDiscordClientUser(clientAuth.user);
@@ -161,12 +161,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
     } catch (error: any) {
-        if (error.message === "ALREADY_AUTHENTICATED_RELOAD_REQUIRED") {
-            // Force a page reload. Discord will re-initialize the iframe, 
-            // trigger the silent sign-in automatically, and restore the session.
-            window.location.reload();
-            return;
-        }
         handleAuthError(error);
     } finally {
         setLoading(false);
