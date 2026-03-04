@@ -17,14 +17,17 @@ export const getAuthErrorMessage = (error: unknown): string => {
       case 'auth/user-not-found':
       case 'auth/wrong-password':
       case 'auth/invalid-credential':
+      case 'INVALID_LOGIN_CREDENTIALS': 
         message = 'Incorrect email or password';
         break;
       case 'functions/already-exists':
       case 'auth/email-already-in-use':
+      case 'EMAIL_EXISTS': 
         message = 'Email already in use';
         break;
       case 'auth/weak-password':
       case 'auth/invalid-password':
+      case 'WEAK_PASSWORD': 
         message = 'Password is too weak (min. 6 characters)';
         break;
       case 'auth/popup-blocked':
@@ -37,9 +40,11 @@ export const getAuthErrorMessage = (error: unknown): string => {
       default:
         // For any other errors, show a generic message but log the code for debugging.
         console.error(`Unhandled auth error code: ${code}`);
-        message = 'An error occurred during authentication';
+        message = errorObj.message || code;
         break;
     }
+  } else if (errorObj.message) {
+    message = errorObj.message;
   }
   return message;
 };

@@ -124,21 +124,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     []
   );
 
-  const signInWithCustomToken = useCallback(async (token: string): Promise<void> => {
-    clearAuthError();
-    try {
-      const { getFirebaseAuth } = await import('@/lib/firebase/firebase');
-      const { getAdditionalUserInfo, signInWithCustomToken: firebaseSignInWithCustomToken } = await import('firebase/auth');
-      const auth = await getFirebaseAuth();
-      const userCredential = await firebaseSignInWithCustomToken(auth, token);
-      const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser ?? false;
-      logEvent(isNewUser ? 'sign_up' : 'login', { method: 'discord' });
-      setIsAuthDialogOpen(false);
-    } catch (error) {
-      handleAuthError(error);
-    }
-  }, [clearAuthError, handleAuthError, logEvent]);
-
   const signInWithDiscord = useCallback(async (): Promise<void> => {
     clearAuthError();
     setLoading(true);
@@ -435,8 +420,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [isInsideDiscord, clearAuthError, handleAuthError, logEvent]);
 
-  // Handles email and password sign-in.
-    const signInWithEmail = useCallback(async (email: string, password: string): Promise<boolean> => {
+  const signInWithCustomToken = useCallback(async (token: string): Promise<void> => {
+    clearAuthError();
+    try {
+      if (isInsideDiscord) {
+        const exchangeRes = await fetch('/api/auth/exchange', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        });
+        const exchangeData = await exchangeRes.json();
+        if (!exchangeRes.ok) throw { code: exchangeData.code || "UNKNOWN_ERROR" };
+
+        Cookies.set(FIREBASE_ID_TOKEN_COOKIE, exchangeData.idToken, { expires: 1, secure: true, sameSite: 'none' });
+        setUser(exchangeData.user as User);
+        setIsAuthDialogOpen(false);
+      } else {
+        const { getFirebaseAuth } = await import('@/lib/firebase/firebase');
+        const { getAdditionalUserInfo, signInWithCustomToken: firebaseSignInWithCustomToken } = await import('firebase/auth');
+        const auth = await getFirebaseAuth();
+        const userCredential = await firebaseSignInWithCustomToken(auth, token);
+        const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser ?? false;
+        logEvent(isNewUser ? 'sign_up' : 'login', { method: 'discord' });
+        setIsAuthDialogOpen(false);
+      }
+    } catch (error) {
+      handleAuthError(error);
+    }
+  }, [clearAuthError, handleAuthError, logEvent, isInsideDiscord]);
+
+
+  const signInWithEmail = useCallback(async (email: string, password: string): Promise<boolean> => {
     clearAuthError();
     if (!email || !password) {
       setAuthError('Missing email or password');
@@ -444,21 +458,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     try {
       if (isInsideDiscord) {
-        // Discord
+        // Discord: Proxy sign-in.
         const response = await fetch('/api/auth/email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'login', email, password })
+          body: JSON.stringify({ email, password })
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Login failed");
+        if (!response.ok) throw { code: data.code || "UNKNOWN_ERROR" };
 
         Cookies.set(FIREBASE_ID_TOKEN_COOKIE, data.idToken, { expires: 1, secure: true, sameSite: 'none' });
         setUser(data.user as User);
         setIsAuthDialogOpen(false);
         return true;
       } else {
-        // Browser
+        // Browser: Standard sign-in.
         const { handleSignInWithEmail } = await import('@/lib/auth-actions');
         const userCredential = await handleSignInWithEmail(email, password);
         const user = userCredential.user;
@@ -485,21 +499,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     try {
       if (isInsideDiscord) {
-         // Discord
-        const response = await fetch('/api/auth/email', {
+        // 1. Call your original cloud function to create the user & get custom token.
+        const createRes = await fetch('/api/create-user-account', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'signup', email, password, name })
+          body: JSON.stringify({ name, email, password })
         });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Signup failed");
+        const createData = await createRes.json();
+        
+        if (!createRes.ok) {
+          const errMsg = typeof createData.error === 'string' ? createData.error : createData.error?.message || "Failed to create user account.";
+          throw new Error(errMsg); 
+        }
 
-        Cookies.set(FIREBASE_ID_TOKEN_COOKIE, data.idToken, { expires: 1, secure: true, sameSite: 'none' });
-        setUser(data.user as User);
+        // 2. Exchange custom token for an ID token securely via backend proxy.
+        const exchangeRes = await fetch('/api/auth/exchange', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: createData.token })
+        });
+        const exchangeData = await exchangeRes.json();
+        
+        if (!exchangeRes.ok) {
+          throw new Error(exchangeData.code || "Failed to finalise authentication.");
+        }
+
+        Cookies.set(FIREBASE_ID_TOKEN_COOKIE, exchangeData.idToken, { expires: 1, secure: true, sameSite: 'none' });
+        setUser(exchangeData.user as User);
         setIsAuthDialogOpen(false);
         return true;
       } else {
-        // Browser
+        // Browser: Standard sign-up.
         const { handleSignUpWithEmail } = await import('@/lib/auth-actions');
         const userCredential = await handleSignUpWithEmail(name, email, password);
         const user = userCredential.user;
