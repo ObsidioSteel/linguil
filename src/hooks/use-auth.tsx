@@ -578,16 +578,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       signOutCleanup.current.forEach((cleanup) => cleanup());
       signOutCleanup.current = [];
       
-      // Clear Discord local state, mocked user state and session cookie.
       if (isInsideDiscord) {
+        // Clear Discord local state and session cookie.
         setDiscordClientUser(null);
         setUser(null);
-        Cookies.remove(FIREBASE_ID_TOKEN_COOKIE);
+        Cookies.remove(FIREBASE_ID_TOKEN_COOKIE, { secure: true, sameSite: 'none' });
+      } else {
+        // Only call Firebase sign-out if in browser.
+        const { handleSignOut }: { handleSignOut: () => Promise<void> } = await import('@/lib/auth-actions');
+        await handleSignOut();
       }
-      
-      // Sign out of Firebase.
-      const { handleSignOut }: { handleSignOut: () => Promise<void> } = await import('@/lib/auth-actions');
-      await handleSignOut();
     } catch {
       toast({
         title: 'Sign-out failed',
