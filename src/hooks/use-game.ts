@@ -118,7 +118,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
     if (cache) {
       try {
         return JSON.parse(cache).idToken;
-      } catch (e) {
+      } catch (_e) {
         console.error("Failed to parse discord auth cache");
       }
     }

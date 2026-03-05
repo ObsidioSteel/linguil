@@ -283,7 +283,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (!token) {
              const cache = sessionStorage.getItem('discord_auth_cache');
              if (cache) {
-                 try { token = JSON.parse(cache).idToken; } catch (e) {}
+                 try { token = JSON.parse(cache).idToken; } catch (_e) {}
              }
           }
           
