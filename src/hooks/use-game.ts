@@ -147,7 +147,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
       // Backend fetch for Discord users.
       try {
         const token = getAuthToken();
-        const response = await fetch(`/api/game/score?wordIdentifier=${wordIdentifier}`, {
+        const response = await fetch(`/api/game/score?wordIdentifier=${wordIdentifier}${token ? `&token=${token}` : ''}`, {
           headers: {
             ...(token ? { 'x-auth-token': token } : {})
           }
@@ -375,7 +375,9 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
       try {
         const token = getAuthToken();
         const apiUrl = new URL('/api/game/score', window.location.origin);
-        const res = await fetch(apiUrl, {
+        if (token) apiUrl.searchParams.append('token', token);
+
+        const res = await fetch(apiUrl.toString(), {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',

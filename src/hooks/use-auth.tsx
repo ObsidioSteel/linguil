@@ -291,7 +291,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
           if (!token) return;
 
-          const response = await fetch('/api/user/me', {
+          const response = await fetch(`/api/user/me?token=${token}`, {
             headers: {
               'x-auth-token': token
             }

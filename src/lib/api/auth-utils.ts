@@ -12,17 +12,26 @@ if (admin.apps.length === 0) {
 // If authentication fails at any step, it returns a NextResponse object with the appropriate HTTP status code and error message.
 
 export const authenticateRequest = async (req: NextRequest): Promise<{ uid: string } | NextResponse> => {
-  // 1. Try to get the token from our custom header to bypass Discord proxy stripping.
-  const customHeader = req.headers.get('x-auth-token');
-  const authHeader = req.headers.get('Authorization');
-  let tokenValue = '';
+  // 1. Try URL parameters to bypass Discord proxy header stripping.
+  const url = new URL(req.url);
+  let tokenValue = url.searchParams.get('token');
 
-  if (customHeader) {
-    tokenValue = customHeader;
-  } else if (authHeader && authHeader.startsWith('Bearer ')) {
-    tokenValue = authHeader.substring(7);
-  } else {
-    // 2. Fall back to the cookie (for browsers).
+  // 2. Try our custom header fallback.
+  if (!tokenValue) {
+    const customHeader = req.headers.get('x-auth-token');
+    if (customHeader) tokenValue = customHeader;
+  }
+  
+  // 3. Try standard authorisation.
+  if (!tokenValue) {
+    const authHeader = req.headers.get('Authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      tokenValue = authHeader.substring(7);
+    }
+  }
+
+  // 4. Try cookie (standard browser fallback)
+  if (!tokenValue) {
     const cookieStore = await cookies();
     const idToken = cookieStore.get('firebaseIdToken');
     if (idToken) {
