@@ -144,6 +144,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             
           // Manually set the cookie and the React state.
           Cookies.set(FIREBASE_ID_TOKEN_COOKIE, clientAuth.idToken, { expires: 1, secure: true, sameSite: 'none' });
+          sessionStorage.setItem('discord_auth_cache', JSON.stringify({ idToken: clientAuth.idToken }));
           
           // Manually mock the Firebase User object to satisfy the context type.
           setUser({ 
@@ -187,6 +188,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
               if (authResponse) {
                   Cookies.set(FIREBASE_ID_TOKEN_COOKIE, authResponse.idToken, { expires: 1, secure: true, sameSite: 'none' });
+                  sessionStorage.setItem('discord_auth_cache', JSON.stringify({ idToken: authResponse.idToken }));
                   setUser({ 
                       uid: authResponse.user.uid, 
                       displayName: authResponse.user.displayName, 

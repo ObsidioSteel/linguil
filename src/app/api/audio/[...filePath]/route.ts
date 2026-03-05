@@ -20,7 +20,7 @@ export const GET = async (
       return new NextResponse('File path parameter is missing or invalid.', { status: 400 });
     }
 
-    const fullPath = filePath.join('/');
+    const fullPath = `audio/${filePath.join('/')}`;
     const bucket = admin.storage().bucket();
     const file = bucket.file(fullPath);
 
