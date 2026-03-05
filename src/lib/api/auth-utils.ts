@@ -12,11 +12,14 @@ if (admin.apps.length === 0) {
 // If authentication fails at any step, it returns a NextResponse object with the appropriate HTTP status code and error message.
 
 export const authenticateRequest = async (req: NextRequest): Promise<{ uid: string } | NextResponse> => {
-  // 1. Try to get the token from the Authorization header (for Discord).
+  // 1. Try to get the token from our custom header to bypass Discord proxy stripping.
+  const customHeader = req.headers.get('x-auth-token');
   const authHeader = req.headers.get('Authorization');
   let tokenValue = '';
 
-  if (authHeader && authHeader.startsWith('Bearer ')) {
+  if (customHeader) {
+    tokenValue = customHeader;
+  } else if (authHeader && authHeader.startsWith('Bearer ')) {
     tokenValue = authHeader.substring(7);
   } else {
     // 2. Fall back to the cookie (for browsers).

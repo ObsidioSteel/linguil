@@ -149,7 +149,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
         const token = getAuthToken();
         const response = await fetch(`/api/game/score?wordIdentifier=${wordIdentifier}`, {
           headers: {
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            ...(token ? { 'x-auth-token': token } : {})
           }
         });
         if (response.ok) {
@@ -308,13 +308,14 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
           // Extract the path to use our proxy.
           // e.g., /api/audio/YYYY-MM-DD/FILE.mp3
           const url = new URL(audioSrc);
-          const audioIndex = url.pathname.indexOf('/audio/');
-          if (audioIndex !== -1) {
-             const pathSegment = url.pathname.substring(audioIndex + 1);
-             audioSrc = `/api/${pathSegment}`;
+          const decodedPath = decodeURIComponent(url.pathname);
+          const match = decodedPath.match(/audio\/.*$/);
+          
+          if (match) {
+             audioSrc = `/api/${match[0]}`;
           }
         } catch (error) {
-            console.error('Failed to construct proxy audio URL:', error);
+          console.error('Failed to construct proxy audio URL:', error);
         }
       }
 
@@ -378,7 +379,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            ...(token ? { 'x-auth-token': token } : {})
           },
           body: JSON.stringify(scoreDataForSaving),
         });
