@@ -127,11 +127,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signInWithDiscord = useCallback(async (): Promise<void> => {
     clearAuthError();
     setLoading(true);
-    let requiresReload = false;
     
     try {
-        const { handleSignInWithDiscord } = await import('@/lib/discord-auth');
-        const response = await handleSignInWithDiscord();
+        const { handleSignInWithDiscord, handleSilentSignIn } = await import('@/lib/discord-auth');
+        
+        let response;
+        try {
+            response = await handleSignInWithDiscord();
+        } catch (error: any) {
+            if (error.message === "ALREADY_AUTHENTICATED_RELOAD_REQUIRED") {
+                response = await handleSilentSignIn();
+                if (!response) {
+                    throw new Error("Session expired. Please restart the activity.");
+                }
+            } else {
+                throw error;
+            }
+        }
 
         if (!response) {
           setLoading(false);
@@ -163,17 +175,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
     } catch (error: any) {
-        // If the Discord SDK is already authorized, trigger a quick reload to sync states.
-        if (error.message === "ALREADY_AUTHENTICATED_RELOAD_REQUIRED") {
-            requiresReload = true;
-            window.location.reload();
-            return;
-        }
         handleAuthError(error);
     } finally {
-        if (!requiresReload) {
-            setLoading(false);
-        }
+        setLoading(false);
     }
   }, [clearAuthError, handleAuthError]);
 
