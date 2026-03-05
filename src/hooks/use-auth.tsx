@@ -279,9 +279,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const fetchUserProfile = async (): Promise<void> => {
         try {
           // Prevent ghost requests on sign-out to stop 401 console errors.
-          if (!Cookies.get(FIREBASE_ID_TOKEN_COOKIE)) return;
+          const token = Cookies.get(FIREBASE_ID_TOKEN_COOKIE);
+          if (!token) return;
 
-          const response = await fetch('/api/user/me');
+          const response = await fetch('/api/user/me', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
           if (response.ok && isSubscribed) {
             const data = await response.json();
             if (hasPaid !== data.hasPaid) {

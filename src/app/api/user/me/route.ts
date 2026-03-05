@@ -3,7 +3,7 @@ import { authenticateRequest } from '@/lib/api/auth-utils';
 import * as admin from 'firebase-admin';
 
 export async function GET(req: NextRequest) {
-  // Verify the HTTPOnly cookie.
+  // Verify the Auth header or cookie.
   const authResult = await authenticateRequest(req);
   if (authResult instanceof NextResponse) {
     return authResult; // Returns 401 Unauthorized if cookie is missing/invalid.

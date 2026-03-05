@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getDailyWordDataClient } from '@/lib/game/data-service-client';
 import { getOfflineQuizData } from '@/lib/game/data-service-offline';
 import { generateQuestions } from '@/lib/game/quiz-questions';
+import Cookies from 'js-cookie';
 
 // Keys for session storage.
 const GAME_MODE_KEY = 'linguil-game-mode';
@@ -127,7 +128,12 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
     if (isInsideDiscord) {
       // Backend fetch for Discord users.
       try {
-        const response = await fetch(`/api/game/score?wordIdentifier=${wordIdentifier}`);
+        const token = Cookies.get('firebaseIdToken');
+        const response = await fetch(`/api/game/score?wordIdentifier=${wordIdentifier}`, {
+          headers: {
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          }
+        });
         if (response.ok) {
           const data = await response.json();
           return data; // Returns { score, totalQuestions } or null.
@@ -279,12 +285,15 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
       // When inside Discord, proxy audio through the app's backend to avoid CSP issues.
       if (isInsideDiscord) {
         try {
-          // The audioUrl from Firebase is a full HTTPS URL. We need to extract the path to use our proxy.
-          // e.g., https://storage.googleapis.com/bucket-name/audio/file.mp3 -> /api/audio/audio/file.mp3
+          // The audioUrl from Firebase is a full HTTPS URL.
+          // e.g., https://storage.googleapis.com/BUCKET_NAME/audio/YYYY-MM-DD/FILE.mp3
+          // Extract the path to use our proxy.
+          // e.g., /api/audio/audio%2FYYYY-MM-DD%2FFILE.mp3
           const url = new URL(audioSrc);
-          const pathSegment = url.pathname.substring(url.pathname.indexOf('/', 1) + 1); // Removes bucket name
-          if (pathSegment) {
-            audioSrc = `/api/audio/${pathSegment}`;
+          const pathAfterBucket = url.pathname.substring(url.pathname.indexOf('/', 1) + 1);
+          
+          if (pathAfterBucket) {
+            audioSrc = `/api/audio/${encodeURIComponent(pathAfterBucket)}`;
           }
         } catch (error) {
             console.error('Failed to construct proxy audio URL:', error);
@@ -345,10 +354,14 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
     if (discordClientUser) {
       // If in Discord Client, use the API proxy to save the score.
       try {
+        const token = Cookies.get('firebaseIdToken');
         const apiUrl = new URL('/api/game/score', window.location.origin);
         const res = await fetch(apiUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
           body: JSON.stringify(scoreDataForSaving),
         });
         if (!res.ok) throw new Error('Server responded with an error');
