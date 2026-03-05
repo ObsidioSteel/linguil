@@ -166,7 +166,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // If the Discord SDK is already authorized, trigger a quick reload to sync states.
         if (error.message === "ALREADY_AUTHENTICATED_RELOAD_REQUIRED") {
             requiresReload = true;
-            window.location.href = window.location.href;
+            window.location.reload();
             return;
         }
         handleAuthError(error);
@@ -177,8 +177,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [clearAuthError, handleAuthError]);
 
-  // This is the primary authentication effect.
-  // It detects the environment (Discord client vs. browser) and initializes auth accordingly.
   useEffect(() => {
     if (!hasMounted) return;
 
@@ -186,56 +184,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const inDiscord = !!params.get('frame_id');
     setIsInsideDiscord(inDiscord);
 
-    // 1. Always initialize the Firebase listener.
     let unsubscribe: (() => void) | undefined;
-    const initializeAuth = async () => {
-      try {
-        const { getFirebaseAuth } = await import('@/lib/firebase/firebase');
-        const { onIdTokenChanged } = await import('firebase/auth');
-        const auth = await getFirebaseAuth();
-        // Listen for changes in the user's sign-in state.
-        unsubscribe = onIdTokenChanged(auth, async (currentUser) => {
-          if (currentUser) {
-            // User is signed in.
-            const idTokenResult = await currentUser.getIdTokenResult();
-            const paidStatus = idTokenResult.claims.hasPaid === true;
 
-            // Update state with user info.
-            setUser(currentUser);
-            setHasPaid(paidStatus);
-            if (!inDiscord) {
-              Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1, secure: true, sameSite: 'none' });
-            }
-            try {
-              const { getFirebaseAnalytics } = await import('@/lib/firebase/firebase');
-              const { setUserId, setUserProperties } = await import('firebase/analytics');
-              const analytics = await getFirebaseAnalytics();
-              if (analytics && !inDiscord) {
-                setUserId(analytics, currentUser.uid);
-                setUserProperties(analytics, { has_paid: paidStatus });
-              }
-            } catch {}
-          } else {
-            // User is signed out.
-            setUser(null);
-            setHasPaid(false);
-            if (!inDiscord) {
-              Cookies.remove(FIREBASE_ID_TOKEN_COOKIE);
-            }
-          }
-          setLoading(false);
-          setAuthError(null);
-          setIsAuthDialogOpen(false);
-        });
-      } catch {
-        setAuthError("Failed to connect to authentication service");
-        setLoading(false);
-      }
-    };
-    initializeAuth();
-
-    // 2. Execute embedded Discord logic in parallel.
     if (inDiscord) {
+      // 1. Discord
       const silentSignIn = async () => {
           try {
               const { handleSilentSignIn } = await import('@/lib/discord-auth');
@@ -244,9 +196,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               if (authResponse) {
                   Cookies.set(FIREBASE_ID_TOKEN_COOKIE, authResponse.idToken, { expires: 1, secure: true, sameSite: 'none' });
                   setUser({ 
-                     uid: authResponse.user.uid, 
-                     displayName: authResponse.user.displayName, 
-                     photoURL: authResponse.user.photoURL 
+                      uid: authResponse.user.uid, 
+                      displayName: authResponse.user.displayName, 
+                      photoURL: authResponse.user.photoURL 
                   } as User);
 
                   setDiscordClientUser(authResponse.user);
@@ -265,6 +217,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
       };
       silentSignIn();
+      
+    } else {
+      // 2. Browser
+      const initializeAuth = async () => {
+        try {
+          const { getFirebaseAuth } = await import('@/lib/firebase/firebase');
+          const { onIdTokenChanged } = await import('firebase/auth');
+          const auth = await getFirebaseAuth();
+          
+          unsubscribe = onIdTokenChanged(auth, async (currentUser) => {
+            if (currentUser) {
+              const idTokenResult = await currentUser.getIdTokenResult();
+              const paidStatus = idTokenResult.claims.hasPaid === true;
+              setUser(currentUser);
+              setHasPaid(paidStatus);
+              Cookies.set(FIREBASE_ID_TOKEN_COOKIE, idTokenResult.token, { expires: 1, secure: true, sameSite: 'none' });
+              try {
+                const { getFirebaseAnalytics } = await import('@/lib/firebase/firebase');
+                const { setUserId, setUserProperties } = await import('firebase/analytics');
+                const analytics = await getFirebaseAnalytics();
+                if (analytics && !inDiscord) {
+                  setUserId(analytics, currentUser.uid);
+                  setUserProperties(analytics, { has_paid: paidStatus });
+                }
+              } catch {}
+            } else {
+              setUser(null);
+              setHasPaid(false);
+              Cookies.remove(FIREBASE_ID_TOKEN_COOKIE);
+            }
+            setLoading(false);
+            setAuthError(null);
+            setIsAuthDialogOpen(false);
+          });
+        } catch {
+          setAuthError("Failed to connect to authentication service");
+          setLoading(false);
+        }
+      };
+      initializeAuth();
     }
 
     return () => {

@@ -39,7 +39,7 @@ async function authenticateWithBackend(discordSdk: any, authorizeSilently: boole
     const authResult = await discordSdk.commands.authorize(authorizePayload);
     code = authResult.code;
   } catch (error: any) {
-    if (error.code === 4002 && !authorizeSilently) {
+    if (!authorizeSilently) {
       throw new Error("ALREADY_AUTHENTICATED_RELOAD_REQUIRED");
     }
 
