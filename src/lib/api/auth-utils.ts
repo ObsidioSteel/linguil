@@ -13,8 +13,8 @@ if (admin.apps.length === 0) {
 
 export const authenticateRequest = async (req: NextRequest): Promise<{ uid: string } | NextResponse> => {
   // 1. Try URL parameters to bypass Discord proxy header stripping.
-  const url = new URL(req.url);
-  let tokenValue = url.searchParams.get('token');
+  const cookieStore = await cookies();
+  let tokenValue = req.nextUrl.searchParams.get('token');
 
   // 2. Try our custom header fallback.
   if (!tokenValue) {
@@ -32,7 +32,6 @@ export const authenticateRequest = async (req: NextRequest): Promise<{ uid: stri
 
   // 4. Try cookie (standard browser fallback)
   if (!tokenValue) {
-    const cookieStore = await cookies();
     const idToken = cookieStore.get('firebaseIdToken');
     if (idToken) {
       tokenValue = idToken.value;
