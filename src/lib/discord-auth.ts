@@ -39,8 +39,11 @@ async function authenticateWithBackend(discordSdk: any, authorizeSilently: boole
     const authResult = await discordSdk.commands.authorize(authorizePayload);
     code = authResult.code;
   } catch (error: any) {
-    if (!authorizeSilently) {
-      throw new Error("ALREADY_AUTHENTICATED_RELOAD_REQUIRED");
+    if (error.code === 4002 || error.message?.includes('Already authenticated')) {
+      const cachedSession = sessionStorage.getItem('discord_auth_cache');
+      if (cachedSession) {
+        return JSON.parse(cachedSession) as DiscordClientAuthResponse;
+      }
     }
 
     if (authorizeSilently) {
@@ -75,6 +78,8 @@ async function authenticateWithBackend(discordSdk: any, authorizeSilently: boole
 
     // 3. Our backend returns the access token, user object, and payment status.
     const authResponse: DiscordClientAuthResponse = await response.json();
+
+    sessionStorage.setItem('discord_auth_cache', JSON.stringify(authResponse));
 
     // 4. Use the access token to authenticate the Discord SDK instance.
     await discordSdk.commands.authenticate({ access_token: authResponse.accessToken });
