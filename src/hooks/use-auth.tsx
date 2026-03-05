@@ -142,9 +142,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // Discord Client authentication: set user data and then set the activity.
           const clientAuth = response as DiscordClientAuthResponse;
             
+          const exchangeRes = await fetch('/api/auth/exchange', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: clientAuth.idToken })
+          });
+          const exchangeData = await exchangeRes.json();
+          const realIdToken = exchangeData.idToken;
+
           // Manually set the cookie and the React state.
-          Cookies.set(FIREBASE_ID_TOKEN_COOKIE, clientAuth.idToken, { expires: 1, secure: true, sameSite: 'none' });
-          sessionStorage.setItem('discord_auth_cache', JSON.stringify({ idToken: clientAuth.idToken }));
+          Cookies.set(FIREBASE_ID_TOKEN_COOKIE, realIdToken, { expires: 1, secure: true, sameSite: 'none' });
+          sessionStorage.setItem('discord_auth_cache', JSON.stringify({ idToken: realIdToken }));
           
           // Manually mock the Firebase User object to satisfy the context type.
           setUser({ 
@@ -187,8 +195,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               const authResponse = await handleSilentSignIn();
 
               if (authResponse) {
-                  Cookies.set(FIREBASE_ID_TOKEN_COOKIE, authResponse.idToken, { expires: 1, secure: true, sameSite: 'none' });
-                  sessionStorage.setItem('discord_auth_cache', JSON.stringify({ idToken: authResponse.idToken }));
+                  const exchangeRes = await fetch('/api/auth/exchange', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: authResponse.idToken })
+                  });
+                  const exchangeData = await exchangeRes.json();
+                  const realIdToken = exchangeData.idToken;
+
+                  Cookies.set(FIREBASE_ID_TOKEN_COOKIE, realIdToken, { expires: 1, secure: true, sameSite: 'none' });
+                  sessionStorage.setItem('discord_auth_cache', JSON.stringify({ idToken: realIdToken }));
                   setUser({ 
                       uid: authResponse.user.uid, 
                       displayName: authResponse.user.displayName, 
