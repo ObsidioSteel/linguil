@@ -93,40 +93,35 @@ export async function POST(req: NextRequest) {
 
     // 8. Handle the response based on the client type.
     const customToken = await auth.createCustomToken(userRecord.uid);
+    const { uid, displayName } = userRecord;
 
     if (isFromDiscordClient) {
       // Exchange the custom token for an ID token on the server.
       const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-      let idToken = customToken;
 
-      try {
-        const idTokenRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${apiKey}`, {
+        if (!apiKey) {
+          console.error("Missing NEXT_PUBLIC_FIREBASE_API_KEY");
+          return NextResponse.json({ message: "Server misconfiguration" }, { status: 500 });
+        }
+
+        const exchangeResponse = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${apiKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: customToken, returnSecureToken: true }),
         });
-        
-        if (idTokenRes.ok) {
-          const idTokenData = await idTokenRes.json();
-          idToken = idTokenData.idToken;
-        } else {
-          console.error("Failed to exchange custom token for ID token on backend");
+
+        const exchangeData = await exchangeResponse.json();
+
+        if (!exchangeResponse.ok) {
+          console.error("Token exchange failed:", exchangeData);
+          return NextResponse.json({ message: "Failed to generate ID token" }, { status: 500 });
         }
-      } catch (err) {
-        console.error("Backend identity toolkit fetch error:", err);
-      }
 
-      const { uid, displayName } = userRecord;
-      const finalPhotoURL = userRecord.photoURL || photoURL;
-      const hasPaid = userRecord.customClaims?.['hasPaid'] === true;
-
-      return new NextResponse(JSON.stringify({
-        accessToken,
-        customToken,
-        idToken,
-        user: { uid, displayName, photoURL: finalPhotoURL },
-        hasPaid,
-      }), { status: 200 });
+        return new NextResponse(JSON.stringify({
+          idToken: exchangeData.idToken,
+          user: { uid, displayName, photoURL: userRecord.photoURL || photoURL },
+          hasPaid: userRecord.customClaims?.['hasPaid'] === true,
+        }), { status: 200 });
     } else {
       // For a standard browser: return a custom token for client-side sign-in.
       return new NextResponse(JSON.stringify({ customToken }), { status: 200 });
