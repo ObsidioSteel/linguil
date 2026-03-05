@@ -278,8 +278,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const fetchUserProfile = async (): Promise<void> => {
         try {
-          // Prevent ghost requests on sign-out to stop 401 console errors.
-          const token = Cookies.get(FIREBASE_ID_TOKEN_COOKIE);
+          // Fallback check: cookie -> session storage cache
+          let token = Cookies.get(FIREBASE_ID_TOKEN_COOKIE);
+          if (!token) {
+             const cache = sessionStorage.getItem('discord_auth_cache');
+             if (cache) {
+                 try { token = JSON.parse(cache).idToken; } catch (e) {}
+             }
+          }
+          
           if (!token) return;
 
           const response = await fetch('/api/user/me', {

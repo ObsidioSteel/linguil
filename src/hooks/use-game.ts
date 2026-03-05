@@ -107,6 +107,24 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
     toast({ title, description, variant: 'destructive' });
   }, [toast]);
 
+  // Helper to reliably get the token even if cookies are blocked by the iframe.
+  const getAuthToken = useCallback(() => {
+    // Try cookie first.
+    const cookieToken = Cookies.get('firebaseIdToken');
+    if (cookieToken) return cookieToken;
+    
+    // Fallback to Discord session storage cache.
+    const cache = sessionStorage.getItem('discord_auth_cache');
+    if (cache) {
+      try {
+        return JSON.parse(cache).idToken;
+      } catch (e) {
+        console.error("Failed to parse discord auth cache");
+      }
+    }
+    return null;
+  }, []);
+
   // Retrieves a pending score from session storage.
   const getPendingScore = useCallback((): (DailyScore & { wordIdentifier: string }) | null => {
     if (isInsideDiscord) return null;
@@ -128,7 +146,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
     if (isInsideDiscord) {
       // Backend fetch for Discord users.
       try {
-        const token = Cookies.get('firebaseIdToken');
+        const token = getAuthToken();
         const response = await fetch(`/api/game/score?wordIdentifier=${wordIdentifier}`, {
           headers: {
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
@@ -136,7 +154,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
         });
         if (response.ok) {
           const data = await response.json();
-          return data; // Returns { score, totalQuestions } or null.
+          return data;
         }
       } catch (error) {
         console.error("Failed to fetch daily score from backend", error);
@@ -156,7 +174,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
       return { score: doc.score, totalQuestions: doc.totalQuestions };
     }
     return null;
-  }, [user, discordClientUser, isInsideDiscord]);
+  }, [user, discordClientUser, isInsideDiscord, getAuthToken]);
 
   // Loads data for the daily online game.
   const loadDailyData = useCallback(async () => {
@@ -288,12 +306,12 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
           // The audioUrl from Firebase is a full HTTPS URL.
           // e.g., https://storage.googleapis.com/BUCKET_NAME/audio/YYYY-MM-DD/FILE.mp3
           // Extract the path to use our proxy.
-          // e.g., /api/audio/audio%2FYYYY-MM-DD%2FFILE.mp3
+          // e.g., /api/audio/YYYY-MM-DD/FILE.mp3
           const url = new URL(audioSrc);
-          const pathAfterBucket = url.pathname.substring(url.pathname.indexOf('/', 1) + 1);
-          
-          if (pathAfterBucket) {
-            audioSrc = `/api/audio/${encodeURIComponent(pathAfterBucket)}`;
+          const audioIndex = url.pathname.indexOf('/audio/');
+          if (audioIndex !== -1) {
+             const pathSegment = url.pathname.substring(audioIndex + 1);
+             audioSrc = `/api/${pathSegment}`;
           }
         } catch (error) {
             console.error('Failed to construct proxy audio URL:', error);
@@ -354,7 +372,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
     if (discordClientUser) {
       // If in Discord Client, use the API proxy to save the score.
       try {
-        const token = Cookies.get('firebaseIdToken');
+        const token = getAuthToken();
         const apiUrl = new URL('/api/game/score', window.location.origin);
         const res = await fetch(apiUrl, {
           method: 'POST',
@@ -378,7 +396,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
       // If logged out, store score in session storage to save later.
       sessionStorage.setItem(PENDING_SCORE_KEY, JSON.stringify(scoreDataForSaving));
     }
-  }, [user, discordClientUser, state.data, state.isOffline, showErrorToast]);
+  }, [user, discordClientUser, state.data, state.isOffline, showErrorToast, getAuthToken]);
 
   // Switches between online and offline game modes.
   const handleModeToggle = (isOffline: boolean) => {
