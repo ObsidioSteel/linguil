@@ -151,6 +151,7 @@ const GameFlow = ({ initialDailyWord }: { initialDailyWord: RawDailyData | null 
       wordDisplay={wordDisplay}
       gameModeToggleSwitch={gameModeToggleSwitch}
       darkModeToggleSwitch={darkModeToggleSwitch}
+      isOfflineGame={isOfflineGame}
     />
   ) : (
     <Quiz

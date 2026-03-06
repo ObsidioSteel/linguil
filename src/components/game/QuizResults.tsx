@@ -213,6 +213,8 @@ type QuizResultsProps = {
   gameModeToggleSwitch: ReactNode;
   // Dark mode toggle component.
   darkModeToggleSwitch: ReactNode;
+  // Is the game in offline mode.
+  isOfflineGame: boolean;
 };
 
 // Displays quiz results, stats, and CTAs.
@@ -225,7 +227,8 @@ const QuizResults = ({
   startOfflineGame, 
   wordDisplay, 
   gameModeToggleSwitch, 
-  darkModeToggleSwitch 
+  darkModeToggleSwitch,
+  isOfflineGame,
 }: QuizResultsProps) => {
   // Auth hook for user and payment status.
   const { user, hasPaid, openAuthDialog } = useAuth();
@@ -294,15 +297,17 @@ const QuizResults = ({
             user={user}
           />
           
-          <Button
-            variant="outline"
-            size="icon"
-            className="absolute bottom-4 right-4 rounded-full shadow-sm hover:bg-primary hover:text-primary-foreground transition-all"
-            onClick={handleShare}
-            aria-label="Share score"
-          >
-            <Share2 className="h-5 w-5" />
-          </Button>
+            {!isOfflineGame && (
+              <Button
+                variant="outline"
+                size="icon"
+                className="absolute bottom-0 right-0 rounded-full shadow-sm hover:bg-primary hover:text-primary-foreground transition-all"
+                onClick={handleShare}
+                aria-label="Share score"
+              >
+                <Share2 className="h-5 w-5" />
+              </Button>
+            )}
         </div>
       </CardContent>
     </Card>
