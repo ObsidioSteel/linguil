@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState, useEffect, useRef, memo, useLayoutEffect } from "react";
 import type { ReactNode } from 'react';
 import { useAuth } from "@/hooks/use-auth";
-import { Lock, Unlock } from 'lucide-react';
+import { Share2, Lock, Unlock } from 'lucide-react';
+import { generateShareText } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 import dynamic from 'next/dynamic';
 import {
   Dialog,
@@ -197,6 +199,8 @@ type QuizResultsProps = {
   score: number;
   // Total number of questions.
   totalQuestions: number;
+  // Question results.
+  questionResults?: boolean[];
   // The word object for the quiz.
   word: Word;
   // Language statistics.
@@ -212,10 +216,20 @@ type QuizResultsProps = {
 };
 
 // Displays quiz results, stats, and CTAs.
-const QuizResults = ({ score, totalQuestions, word, languageStats, startOfflineGame, wordDisplay, gameModeToggleSwitch, darkModeToggleSwitch }: QuizResultsProps) => {
+const QuizResults = ({ 
+  score, 
+  totalQuestions, 
+  questionResults,
+  word, 
+  languageStats, 
+  startOfflineGame, 
+  wordDisplay, 
+  gameModeToggleSwitch, 
+  darkModeToggleSwitch 
+}: QuizResultsProps) => {
   // Auth hook for user and payment status.
   const { user, hasPaid, openAuthDialog } = useAuth();
-  // Ref to the results card for focusing.
+  const { toast } = useToast();
   const resultsRef = useRef<HTMLDivElement>(null);
 
   // Focus results card on mount.
@@ -223,12 +237,33 @@ const QuizResults = ({ score, totalQuestions, word, languageStats, startOfflineG
     resultsRef.current?.focus();
   }, []);
 
+  // Share button logic.
+  const handleShare = async () => {
+    if (!questionResults) return;
+    const shareText = generateShareText(score, totalQuestions, word, questionResults);
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'linguil score', text: shareText });
+      } catch (_err) {
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareText);
+        toast({ title: "Score copied!", description: "Results copied to clipboard." });
+      } catch (_err) {
+        toast({ title: "Failed to share", variant: "destructive" });
+      }
+    }
+  };
+
   return (
     <Card ref={resultsRef} tabIndex={-1} className="shadow-lg animate-fade-in-up w-full outline-none">
       <CardHeader className="text-center pb-0.5">
         <LanguageStatsDisplay languageStats={languageStats} word={word} />
       </CardHeader>
-      <CardContent className="text-center pt-2">
+      
+      <CardContent className="text-center pt-2 relative">
         {wordDisplay}
         <div className="relative flex justify-center items-center mb-2">
           {/* Dark mode toggle slot. */}
@@ -251,12 +286,24 @@ const QuizResults = ({ score, totalQuestions, word, languageStats, startOfflineG
           </div>
         </div>
 
-        <CallToActionButton 
-          hasPaid={hasPaid}
-          startOfflineGame={startOfflineGame}
-          openAuthDialog={openAuthDialog}
-          user={user}
-        />
+        <div className="flex justify-center items-center gap-2">
+          <CallToActionButton 
+            hasPaid={hasPaid}
+            startOfflineGame={startOfflineGame}
+            openAuthDialog={openAuthDialog}
+            user={user}
+          />
+          
+          <Button
+            variant="outline"
+            size="icon"
+            className="absolute bottom-4 right-4 rounded-full shadow-sm hover:bg-primary hover:text-primary-foreground transition-all"
+            onClick={handleShare}
+            aria-label="Share score"
+          >
+            <Share2 className="h-5 w-5" />
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

@@ -171,7 +171,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
     const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {
       const doc = querySnapshot.docs[0].data();
-      return { score: doc.score, totalQuestions: doc.totalQuestions };
+      return { score: doc.score, totalQuestions: doc.totalQuestions, questionResults: doc.questionResults };
     }
     return null;
   }, [user, discordClientUser, isInsideDiscord, getAuthToken]);
@@ -197,8 +197,8 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
           const { getFirebaseFirestore } = await import('@/lib/firebase/firebase');
           const { saveUserScore: saveUserScoreToDb } = await import('@/lib/firebase/firestore');
           const db = await getFirebaseFirestore();
-          await saveUserScoreToDb(db, { uid: activeUser.uid } as any, pendingScore.score, pendingScore.totalQuestions, date);
-          finalScore = { score: pendingScore.score, totalQuestions: pendingScore.totalQuestions };
+          await saveUserScoreToDb(db, { uid: activeUser.uid } as any, pendingScore.score, pendingScore.totalQuestions, date, pendingScore.questionResults);
+          finalScore = { score: pendingScore.score, totalQuestions: pendingScore.totalQuestions, questionResults: pendingScore.questionResults };
           sessionStorage.removeItem(PENDING_SCORE_KEY);
         } else {
           finalScore = await getUserDailyScore(date);
@@ -361,9 +361,9 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
   }, [state.audio, state.data, showErrorToast]);
 
   // Handles quiz completion.
-  const handleQuizFinish = useCallback(async (finalScore: number) => {
+  const handleQuizFinish = useCallback(async (finalScore: number, questionResults: boolean[]) => {
     if (!state.data?.date) return;
-    const scoreData = { score: finalScore, totalQuestions: state.data.questions.length };
+    const scoreData = { score: finalScore, totalQuestions: state.data.questions.length, questionResults };
     dispatch({ type: 'FINISH_QUIZ', payload: scoreData });
 
     if (state.isOffline) return;
@@ -394,7 +394,7 @@ export const useGame = (initialDailyWord: RawDailyData | null = null) => {
       const { getFirebaseFirestore } = await import('@/lib/firebase/firebase');
       const { saveUserScore: saveUserScoreToDb } = await import('@/lib/firebase/firestore');
       const db = await getFirebaseFirestore();
-      saveUserScoreToDb(db, user, finalScore, state.data.questions.length, state.data.date);
+      saveUserScoreToDb(db, user, finalScore, state.data.questions.length, state.data.date, questionResults);
     } else {
       // If logged out, store score in session storage to save later.
       sessionStorage.setItem(PENDING_SCORE_KEY, JSON.stringify(scoreDataForSaving));

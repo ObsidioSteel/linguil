@@ -68,4 +68,5 @@ export type PlayerStats = {
 export type DailyScore = {
   score: number;
   totalQuestions: number;
+  questionResults: boolean[];
 };

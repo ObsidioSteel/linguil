@@ -7,7 +7,8 @@ export const saveUserScore = async (
   user: User, 
   score: number, 
   totalQuestions: number,
-  wordIdentifier: string
+  wordIdentifier: string,
+  questionResults: boolean[]
 ): Promise<void> => {
   // Dynamically import Firestore functions.
   const { doc, setDoc, getDoc, Timestamp } = await import('firebase/firestore');
@@ -27,6 +28,7 @@ export const saveUserScore = async (
       wordIdentifier: wordIdentifier,
       score: score,
       totalQuestions: totalQuestions,
+      questionResults: questionResults,
       timestamp: Timestamp.now(),
     });
   } catch (error) {

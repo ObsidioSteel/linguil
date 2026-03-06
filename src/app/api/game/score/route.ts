@@ -12,6 +12,7 @@ interface ScoreData {
   score: number;
   totalQuestions: number;
   wordIdentifier: string;
+  questionResults: boolean[];
 }
 
 export async function POST(req: NextRequest) {
@@ -21,15 +22,15 @@ export async function POST(req: NextRequest) {
     // 1. Authenticate the user using the Firebase ID token from the cookie.
     const authResult = await authenticateRequest(req);
     if (authResult instanceof NextResponse) {
-      return authResult; // Return the unauthorized response
+      return authResult; 
     }
     const { uid } = authResult;
 
     // 2. Validate the request body against the required structure.
     const body = await req.json();
-    const { score, totalQuestions, wordIdentifier } = body as ScoreData;
+    const { score, totalQuestions, wordIdentifier, questionResults } = body as ScoreData;
 
-    if (typeof score !== 'number' || typeof totalQuestions !== 'number' || !wordIdentifier) {
+    if (typeof score !== 'number' || typeof totalQuestions !== 'number' || !wordIdentifier || !Array.isArray(questionResults)) {
       return new NextResponse(JSON.stringify({ message: 'Invalid score data payload' }), { status: 400 });
     }
 
@@ -48,6 +49,7 @@ export async function POST(req: NextRequest) {
       wordIdentifier,
       score,
       totalQuestions,
+      questionResults,
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
     };
 
@@ -58,7 +60,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown server error occurred.';
-    console.error(`[API/GAME/SCORE] Error saving score for user: ${errorMessage}`);
+    console.error(`[API/GAME/SCORE] Error saving score: ${errorMessage}`);
     return new NextResponse(JSON.stringify({ message: 'Error saving score' }), { status: 500 });
   }
 }
@@ -84,9 +86,14 @@ export async function GET(req: NextRequest) {
 
     if (docSnap.exists) {
       const data = docSnap.data();
-      return NextResponse.json({ score: data?.score, totalQuestions: data?.totalQuestions }, { status: 200 });
+      // Return the questionResults for the Share button.
+      return NextResponse.json({ 
+        score: data?.score, 
+        totalQuestions: data?.totalQuestions,
+        questionResults: data?.questionResults
+      }, { status: 200 });
     } else {
-      return NextResponse.json(null, { status: 200 }); // User hasn't played yet.
+      return NextResponse.json(null, { status: 200 });
     }
   } catch (error) {
     console.error(`[API/GAME/SCORE] Error fetching score:`, error);
