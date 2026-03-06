@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
         }
 
         return new NextResponse(JSON.stringify({
-          access_token: accessToken,
+          accessToken: accessToken,
           idToken: exchangeData.idToken,
           user: { uid, displayName, photoURL: userRecord.photoURL || photoURL },
           hasPaid: userRecord.customClaims?.['hasPaid'] === true,
