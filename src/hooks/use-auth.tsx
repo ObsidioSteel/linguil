@@ -281,14 +281,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const fetchUserProfile = async (): Promise<void> => {
         try {
           // Fallback check: cookie -> session storage cache
-          let token = Cookies.get(FIREBASE_ID_TOKEN_COOKIE);
+          let token: string | undefined = Cookies.get(FIREBASE_ID_TOKEN_COOKIE);
+
+          if (token === 'undefined') {
+            Cookies.remove(FIREBASE_ID_TOKEN_COOKIE, { secure: true, sameSite: 'none' });
+            token = undefined;
+          }
+
           if (!token) {
              const cache = sessionStorage.getItem('discord_auth_cache');
              if (cache) {
-                 try { token = JSON.parse(cache).idToken; } catch (_e) {}
+                 try {
+                   const parsed = JSON.parse(cache);
+                   token = parsed.idToken;
+                 } catch (_e) {}
              }
           }
-          
+
+          if (token === 'undefined') token = undefined;
+
           if (!token) return;
 
           const response = await fetch(`/api/user/me?token=${token}`, {

@@ -106,15 +106,22 @@ export async function POST(req: NextRequest) {
 
         const exchangeResponse = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${apiKey}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Referer': 'https://linguil.app/' 
+          },
           body: JSON.stringify({ token: customToken, returnSecureToken: true }),
         });
 
         const exchangeData = await exchangeResponse.json();
 
         if (!exchangeResponse.ok) {
-          console.error("Token exchange failed:", exchangeData);
-          return NextResponse.json({ message: "Failed to generate ID token" }, { status: 500 });
+          const googleError = exchangeData.error?.message || "UNKNOWN_GOOGLE_ERROR";
+          console.error("Token exchange failed:", JSON.stringify(exchangeData));
+          
+          return NextResponse.json({ 
+            message: `Google API Error: ${googleError}` 
+          }, { status: 500 });
         }
 
         return new NextResponse(JSON.stringify({
