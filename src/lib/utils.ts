@@ -15,3 +15,18 @@ export const shuffleArray = <T>(array: T[]): T[] => {
   }
   return newArray;
 };
+
+// Proxies Google profile pictures through our backend.
+export function getProxiedImageUrl(url: string | null | undefined, isInsideDiscord: boolean) {
+  if (!url) return url;
+  
+  // If it's already a Discord-hosted image or data URI, don't proxy it.
+  if (url.includes('discordapp') || url.startsWith('data:')) return url;
+  
+  // If we are in Discord, proxy external domains.
+  if (isInsideDiscord) {
+    return `/api/proxy/image?url=${encodeURIComponent(url)}`;
+  }
+  
+  return url;
+}

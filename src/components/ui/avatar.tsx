@@ -2,8 +2,8 @@
 
 import { forwardRef, type ComponentPropsWithoutRef, type ElementRef } from 'react';
 import * as AvatarPrimitive from '@radix-ui/react-avatar';
-
-import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/use-auth';
+import { cn, getProxiedImageUrl } from '@/lib/utils';
 
 // Main avatar container, based on Radix UI's Avatar primitive.
 const Avatar = forwardRef<
@@ -19,18 +19,23 @@ const Avatar = forwardRef<
 ));
 Avatar.displayName = AvatarPrimitive.Root.displayName;
 
-// Avatar image, displayed when the source is valid.
+// Update AvatarImage component
 const AvatarImage = forwardRef<
   ElementRef<typeof AvatarPrimitive.Image>,
   ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>
->(({ className, ...props }, ref) => (
-  <AvatarPrimitive.Image
-    ref={ref}
-    // Fills the avatar container while maintaining aspect ratio.
-    className={cn('aspect-square h-full w-full', className)}
-    {...props}
-  />
-));
+>(({ className, src, ...props }, ref) => {
+  const { isInsideDiscord } = useAuth();
+  const proxiedSrc = getProxiedImageUrl(src, isInsideDiscord);
+
+  return (
+    <AvatarPrimitive.Image
+      ref={ref}
+      src={proxiedSrc || undefined}
+      className={cn('aspect-square h-full w-full', className)}
+      {...props}
+    />
+  );
+});
 AvatarImage.displayName = AvatarPrimitive.Image.displayName;
 
 // Fallback displayed if the avatar image fails to load.
