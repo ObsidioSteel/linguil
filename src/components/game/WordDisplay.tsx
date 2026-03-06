@@ -84,7 +84,7 @@ const WordDisplay = memo<WordDisplayProps>(({ word, isOfflineGame, isAudioReady,
         className="grid grid-cols-[1fr_auto_1fr] items-center justify-center gap-4 w-full font-code text-3xl font-semibold text-primary-foreground tracking-wider whitespace-nowrap"
       >
         <span className="text-right">{word.transliteration}</span>
-        <span className="text-center">|</span>
+        <span className="text-center text-muted-foreground">|</span>
         <span className="text-left">{word.nativeScript}</span>
       </div>
       {/* Button to play the word's audio. */}

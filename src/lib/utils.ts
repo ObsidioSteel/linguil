@@ -30,3 +30,35 @@ export function getProxiedImageUrl(url: string | null | undefined, isInsideDisco
   
   return url;
 }
+
+// Generates the daily score share text.
+export function generateShareText(
+  score: number,
+  totalQuestions: number,
+  word: { transliteration: string; nativeScript: string },
+  results: boolean[]
+) {
+  const date = new Date().toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+  });
+
+  const isPerfect = score === totalQuestions;
+  const medal = isPerfect ? ' 🏅' : '';
+  
+  // Maps results to 1: 🟩 2: 🟥 style string.
+  const squares = results
+    .map((isCorrect, i) => `${i + 1}: ${isCorrect ? '🟩' : '🟥'}`)
+    .join(' ');
+
+  const bearEmojis: Record<number, string> = {
+    0: "ʕノ•ᴥ•ʔノ ︵ ┻━┻",
+    1: "◝ʕ •ᴥ• ʔ◜",
+    2: "ʕ ᵔᴥᵔ ʔ",
+    3: "ʕ　ᵔᴥᵔʔ人ʕᵔᴥᵔ　ʔ",
+  };
+  const bear = bearEmojis[score] || bearEmojis[0];
+
+  return `linguil | ${date} | ${word.transliteration} | ${word.nativeScript}${medal}\n${squares}\n${score}/${totalQuestions} | ${bear}\nhttps://linguil.app`;
+}

@@ -20,7 +20,7 @@ type QuizProps = {
   // Array of quiz questions.
   initialQuestions: Question[];
   // Callback on quiz finish.
-  onFinish: (score: number) => void;
+  onFinish: (score: number, results: boolean[]) => void;
   // Word display component.
   wordDisplay: ReactNode;
   // Game mode toggle component.
@@ -37,6 +37,7 @@ type GameState = {
   score: number;
   selectedAnswer: string | null;
   answerStatus: 'correct' | 'incorrect' | null;
+  questionResults: boolean[];
 };
 
 // Manages quiz state, flow, and scoring.
@@ -57,6 +58,8 @@ const Quiz = memo<QuizProps>(({
   const [answerStatus, setAnswerStatus] = useState<'correct' | 'incorrect' | null>(null);
   // User's score.
   const [score, setScore] = useState(0);
+  // Tracks correctness of each answer.
+  const [questionResults, setQuestionResults] = useState<boolean[]>([]);
   // True if quiz is completed.
   const [quizCompleted, setQuizCompleted] = useState(false);
   // Ref to prevent re-loading state.
@@ -102,6 +105,7 @@ const Quiz = memo<QuizProps>(({
             setScore(savedState.score || 0);
             setSelectedAnswer(savedState.selectedAnswer || null);
             setAnswerStatus(savedState.answerStatus || null);
+            setQuestionResults(savedState.questionResults || []);
           }
         }
       } catch {
@@ -118,12 +122,12 @@ const Quiz = memo<QuizProps>(({
   // Handle quiz completion.
   useEffect(() => {
     if (quizCompleted) {
-      onFinish(score);
+      onFinish(score, questionResults);
       if (quizStateKey) {
         sessionStorage.removeItem(quizStateKey);
       }
     }
-  }, [quizCompleted, score, onFinish, quizStateKey]);
+  }, [quizCompleted, score, onFinish, quizStateKey, questionResults]);
 
   // Handle answer selection.
   const handleAnswerSelect = useCallback((answer: string) => {
@@ -136,10 +140,12 @@ const Quiz = memo<QuizProps>(({
     const isCorrect = initialQuestions[currentQuestionIndex].correctAnswer === answer;
     const newScore = isCorrect ? score + 1 : score;
     const newAnswerStatus = isCorrect ? 'correct' : 'incorrect';
+    const newQuestionResults = [...questionResults, isCorrect];
 
     setSelectedAnswer(answer);
     setScore(newScore);
     setAnswerStatus(newAnswerStatus);
+    setQuestionResults(newQuestionResults);
 
     // Save state to session storage.
     if (quizStateKey) {
@@ -148,10 +154,11 @@ const Quiz = memo<QuizProps>(({
         score: newScore,
         selectedAnswer: answer,
         answerStatus: newAnswerStatus,
+        questionResults: newQuestionResults,
       };
       sessionStorage.setItem(quizStateKey, JSON.stringify(gameState));
     }
-  }, [answerStatus, currentQuestionIndex, initialQuestions, onFirstAnswer, quizStateKey, score]);
+  }, [answerStatus, currentQuestionIndex, initialQuestions, onFirstAnswer, quizStateKey, score, questionResults]);
 
   // Trigger exit animation for next question.
   const handleNextQuestion = useCallback(() => {
@@ -177,6 +184,7 @@ const Quiz = memo<QuizProps>(({
             score: score,
             selectedAnswer: null,
             answerStatus: null,
+            questionResults: questionResults,
           };
           sessionStorage.setItem(quizStateKey, JSON.stringify(gameState));
         }
