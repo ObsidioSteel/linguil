@@ -7,34 +7,53 @@ export async function POST(req: Request) {
 
     if (!apiKey) {
       console.error("Missing NEXT_PUBLIC_FIREBASE_API_KEY");
-      return NextResponse.json({ code: "API_KEY_MISSING" }, { status: 500 });
+      return NextResponse.json({ message: "Server misconfiguration" }, { status: 500 });
     }
 
     // Exchange custom token for an ID token.
-    const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${apiKey}`, {
+    const exchangeResponse = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${apiKey}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Referer': 'https://linguil.app/' 
+      },
       body: JSON.stringify({ token, returnSecureToken: true }),
     });
 
-    const data = await response.json();
+    const exchangeData = await exchangeResponse.json();
 
-    if (!response.ok) {
-      return NextResponse.json({ code: data.error?.message || 'UNKNOWN_ERROR' }, { status: 400 });
+    if (!exchangeResponse.ok) {
+        const googleError = exchangeData.error?.message || "UNKNOWN_GOOGLE_ERROR";
+        console.error("Token exchange failed:", JSON.stringify(exchangeData));
+        return NextResponse.json({ 
+            message: `Google API Error: ${googleError}` 
+        }, { status: 500 });
     }
 
     // Lookup the user profile data (Custom Token exchange doesn't return displayName/photoURL by default).
     const lookupRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idToken: data.idToken }),
+      headers: { 
+          'Content-Type': 'application/json',
+          'Referer': 'https://linguil.app/'
+      },
+      body: JSON.stringify({ idToken: exchangeData.idToken }),
     });
     
     const lookupData = await lookupRes.json();
+
+    if (!lookupRes.ok) {
+        const googleError = lookupData.error?.message || "UNKNOWN_GOOGLE_ERROR";
+        console.error("User lookup failed:", JSON.stringify(lookupData));
+        return NextResponse.json({ 
+            message: `Google API Error: ${googleError}` 
+        }, { status: 500 });
+    }
+
     const userData = lookupData.users?.[0] || {};
 
     return NextResponse.json({
-      idToken: data.idToken,
+      idToken: exchangeData.idToken,
       user: {
         uid: userData.localId,
         email: userData.email,
@@ -42,7 +61,9 @@ export async function POST(req: Request) {
         photoURL: userData.photoURL
       }
     });
-  } catch (_error) {
-    return NextResponse.json({ code: 'INTERNAL_ERROR' }, { status: 500 });
+  } catch (error: any) {
+    const errorMessage = error instanceof Error ? error.message : 'An unknown server error occurred.';
+    console.error('Exchange route error:', errorMessage);
+    return NextResponse.json({ message: errorMessage }, { status: 500 });
   }
 }

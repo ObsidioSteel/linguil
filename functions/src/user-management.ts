@@ -14,14 +14,14 @@ const setupNewUser = async (user: admin.auth.UserRecord) => {
     // Get a new write batch
     const batch = db.batch();
 
-    // Create a new Stripe customer
+    // Create a new Stripe customer.
     const stripe = getStripe();
     const customer = await stripe.customers.create({
       email: user.email,
       metadata: { firebaseUID: user.uid },
     });
 
-    // Set the private user document
+    // Set the private user document.
     const userDocRef = db.collection("users").doc(user.uid);
     batch.set(userDocRef, {
       stripeCustomerId: customer.id,
@@ -29,7 +29,7 @@ const setupNewUser = async (user: admin.auth.UserRecord) => {
       hasPaid: false,
     });
 
-    // Set the public user document
+    // Set the public user document.
     batch.set(userPublicDocRef, {
       displayName: user.displayName || null,
       photoURL: user.photoURL || null,

@@ -394,7 +394,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // Open user's desktop browser.
         const { openExternalLink } = await import('@/lib/discord');
-        await openExternalLink(`${window.location.origin}/auth/google/external?session=${sessionId}`);
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://linguil.app';
+        await openExternalLink(`${baseUrl}/auth/google/external?session=${sessionId}`);
 
         // Start polling for completion.
         pollingIntervalRef.current = setInterval(async () => {

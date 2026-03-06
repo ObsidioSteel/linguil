@@ -34,6 +34,8 @@ env:
     value: "https://linguil.app/auth/discord/callback"
   - variable: NEXT_PUBLIC_DISCORD_REDIRECT_URI
     value: "https://linguil.app/auth/discord/callback"
+  - variable: NEXT_PUBLIC_BASE_URL
+    value: "https://linguil.app"
     
 
 headers:

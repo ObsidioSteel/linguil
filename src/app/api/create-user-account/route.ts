@@ -8,6 +8,10 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
+    if (!CREATE_USER_URL) {
+      return new NextResponse(JSON.stringify({ error: 'Server configuration error' }), { status: 500 });
+    }
+
     // Forward the request to the Firebase function.
     const response = await fetch(CREATE_USER_URL, {
       method: 'POST',
@@ -17,15 +21,16 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(body),
     });
 
-    const data = await response.json();
-
     if (!response.ok) {
-      return new NextResponse(JSON.stringify({ error: data.error || 'Function call failed' }), { status: response.status });
+      const errorText = await response.text();
+      return new NextResponse(JSON.stringify({ error: errorText || 'Function call failed' }), { status: response.status });
     }
 
+    const data = await response.json();
     return new NextResponse(JSON.stringify(data), { status: 200 });
 
-  } catch {
-    return new NextResponse(JSON.stringify({ error: 'Proxy error' }), { status: 500 });
+  } catch (error: any) {
+    console.error("Proxy route crashed:", error);
+    return new NextResponse(JSON.stringify({ error: `Proxy error: ${error.message}` }), { status: 500 });
   }
 }
