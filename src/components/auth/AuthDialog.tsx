@@ -86,9 +86,9 @@ const AuthDialog = memo(({ open, onOpenChange }: AuthDialogProps) => {
       return (
         <div className="flex flex-col items-center justify-center p-6 text-center h-[220px]">
           <LoadingSpinner />
-          <p className="mt-4 font-semibold text-lg text-gray-800">Awaiting Sign-In...</p>
+          <p className="mt-4 font-semibold text-lg text-gray-800">Awaiting sign-in...</p>
           <p className="text-sm text-gray-600 mt-2">
-            Complete Google sign-in in default browser
+            Complete Google sign-in in browser
           </p>
           <button onClick={cancelGooglePolling} className="mt-4 text-xs text-blue-500 hover:underline">
             Cancel

@@ -102,14 +102,26 @@ export const usePayments = () => {
         throw new Error("Failed to retrieve checkout session URL");
       }
 
-      window.location.href = url; // Redirect to the Stripe Checkout page.
+      if (isInsideDiscord) {
+        const { openExternalLink } = await import('@/lib/discord');
+        await openExternalLink(url);
+        
+        dispatch({ type: 'PROCESS_SUCCESS' });
+        
+        toast({
+          title: "Awaiting payment...",
+          description: "Complete checkout in browser"
+        });
+      } else {
+        window.location.href = url;
+      }
 
     } catch (err: any) {
       const errorMessage = "Failed to create checkout session"; // Handle any errors.
       dispatch({ type: 'PROCESS_ERROR', payload: errorMessage });
       showErrorToast("Payment error", err.message || errorMessage);
     }
-  }, [showErrorToast, user, isInsideDiscord]);
+  }, [showErrorToast, user, isInsideDiscord, toast]);
 
   // Return the payment state and the checkout session function.
   return { ...state, createCheckoutSession };
