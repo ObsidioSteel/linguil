@@ -39,7 +39,7 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction],
 });
 
-// In-memory store. Key: guildId, Value: Map<userId, { username, score, total, bear }>.
+// In-memory store. Key: guildId, Value: Map<userId, { userId, username, score, total, bear }>.
 const guildScores = new Map();
 
 const linguilRegex = /linguil\s+\|\s+\d{2}\/\d{2}\/\d{2}[\s\S]*?(\d+)\/(\d+)\s+\|\s+(.*?)(?=\n|$)/;
@@ -71,7 +71,7 @@ function buildLeaderboardText(guildId) {
   sortedScoreKeys.forEach((score, index) => {
     const players = groupedScores[score];
     const rank = index < 3 ? medals[index] : `${index + 1}.`;
-    const playerNames = players.map(p => `**${p.username}**`).join(', ');
+    const playerNames = players.map(p => `<@${p.userId}>`).join(', ');
     
     const bear = players[0].bear;
     const total = players[0].total;
@@ -181,6 +181,7 @@ client.on('messageCreate', async (message) => {
     // Store the user's latest score for this server.
     const serverMap = guildScores.get(message.guildId);
     serverMap.set(message.author.id, {
+      userId: message.author.id,
       username: message.author.displayName || message.author.username,
       score: score,
       total: total,
