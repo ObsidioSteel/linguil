@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Partials, SlashCommandBuilder, PermissionFlagsBits, ChannelType } from 'discord.js';
+import { Client, GatewayIntentBits, Partials, SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } from 'discord.js';
 import cron from 'node-cron';
 import fs from 'fs';
 import path from 'path';
@@ -78,8 +78,8 @@ client.on('interactionCreate', async (interaction) => {
     saveConfig(interaction.guildId, selectedChannel.id);
 
     await interaction.reply({ 
-      content: `Setup complete! I will now track scores and post the daily leaderboard in ${selectedChannel}.`, 
-      ephemeral: true 
+      content: `Setup complete! I will now track scores and post the daily leaderboard in <#${selectedChannel.id}>.`,
+      flags: MessageFlags.Ephemeral
     });
   }
 });
