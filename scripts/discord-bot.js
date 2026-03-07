@@ -39,7 +39,7 @@ const guildScores = new Map();
 
 const linguilRegex = /linguil\s+\|\s+\d{2}\/\d{2}\/\d{2}[\s\S]*?(\d+)\/(\d+)\s+\|\s+(.*?)(?=\n|$)/;
 
-client.once('ready', async () => {
+client.once('clientReady', async () => {
   console.log(`linguil bot is online as ${client.user.tag}`);
 
   // 1. Register the /setchannel slash command globally.
@@ -55,8 +55,8 @@ client.once('ready', async () => {
     );
 
   try {
-    await client.application.commands.set([setChannelCmd]);
-    console.log('Global slash commands registered.');
+   await client.application.commands.create(setChannelCmd);
+    console.log('Global slash command registered.');
   } catch (err) {
     console.error('Failed to register slash commands:', err);
   }

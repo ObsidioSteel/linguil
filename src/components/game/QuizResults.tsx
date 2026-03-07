@@ -301,7 +301,7 @@ const QuizResults = ({
               <Button
                 variant="outline"
                 size="icon"
-                className="absolute bottom-5 right-5 rounded-full shadow-sm hover:bg-primary hover:text-primary-foreground transition-all"
+                className="absolute bottom-6 right-6 rounded-full shadow-sm hover:bg-primary hover:text-primary-foreground transition-all"
                 onClick={handleShare}
                 aria-label="Share score"
               >
