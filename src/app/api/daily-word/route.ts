@@ -3,6 +3,8 @@ import { getDailyWordData } from '@/lib/game/data-service-server';
 
 // This route handler fetches the daily word data and provides it to the client.
 // It is called by the GamePageClient component to get the game data.
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     // Retrieve the daily word data using the server-side data service.
