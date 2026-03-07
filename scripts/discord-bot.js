@@ -1,9 +1,14 @@
-import { Client, GatewayIntentBits, Partials, SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } from 'discord.js';
+import { 
+  Client, GatewayIntentBits, Partials, SlashCommandBuilder, 
+  PermissionFlagsBits, ChannelType, MessageFlags,
+  ActionRowBuilder, ButtonBuilder, ButtonStyle 
+} from 'discord.js';
 import cron from 'node-cron';
 import fs from 'fs';
 import path from 'path';
 
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
+const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 
 if (!TOKEN) {
   console.error("Missing DISCORD_BOT_TOKEN in environment variables.");
@@ -39,10 +44,58 @@ const guildScores = new Map();
 
 const linguilRegex = /linguil\s+\|\s+\d{2}\/\d{2}\/\d{2}[\s\S]*?(\d+)\/(\d+)\s+\|\s+(.*?)(?=\n|$)/;
 
+// Generate leaderboard text.
+function buildLeaderboardText(guildId) {
+  const serverMap = guildScores.get(guildId);
+  
+  if (!serverMap || serverMap.size === 0) {
+    return "No one shared a linguil score today! ʕノ•ᴥ•ʔノ ︵ ┻━┻";
+  }
+
+  // Convert Map to Array.
+  const allScores = Array.from(serverMap.values());
+
+  // Group by score (handles ties).
+  const groupedScores = allScores.reduce((acc, curr) => {
+    if (!acc[curr.score]) acc[curr.score] = [];
+    acc[curr.score].push(curr);
+    return acc;
+  }, {});
+
+  // Sort unique scores descending.
+  const sortedScoreKeys = Object.keys(groupedScores).map(Number).sort((a, b) => b - a);
+
+  let leaderboardText = "<:linguil:1473408144259678444> **linguil leaderboard**\n\n";
+  const medals = ["🥇", "🥈", "🥉"];
+
+  sortedScoreKeys.forEach((score, index) => {
+    const players = groupedScores[score];
+    const rank = index < 3 ? medals[index] : `${index + 1}.`;
+    const playerNames = players.map(p => `**${p.username}**`).join(', ');
+    
+    const bear = players[0].bear;
+    const total = players[0].total;
+
+    leaderboardText += `${rank} ${playerNames} • ${score}/${total} | ${bear}\n`;
+  });
+
+  return leaderboardText;
+}
+
+// Generate play button.
+function getPlayButtonRow() {
+  const playButton = new ButtonBuilder()
+    .setLabel('Play linguil')
+    .setStyle(ButtonStyle.Link)
+    .setURL(`https://discord.com/activities/${CLIENT_ID}`); 
+
+  return new ActionRowBuilder().addComponents(playButton);
+}
+
 client.once('clientReady', async () => {
   console.log(`linguil bot is online as ${client.user.tag}`);
 
-  // 1. Register the /setchannel slash command globally.
+  // 1. Register the slash commands globally.
   const setChannelCmd = new SlashCommandBuilder()
     .setName('setchannel')
     .setDescription('Set the channel where the bot will listen for and post linguil scores.')
@@ -54,9 +107,14 @@ client.once('clientReady', async () => {
         .setRequired(true)
     );
 
+  const leaderboardCmd = new SlashCommandBuilder()
+    .setName('leaderboard')
+    .setDescription('View the current daily linguil leaderboard for this server.');
+
   try {
-   await client.application.commands.create(setChannelCmd);
-    console.log('Global slash command registered.');
+    await client.application.commands.create(setChannelCmd);
+    await client.application.commands.create(leaderboardCmd);
+    console.log('Global slash commands registered.');
   } catch (err) {
     console.error('Failed to register slash commands:', err);
   }
@@ -67,7 +125,7 @@ client.once('clientReady', async () => {
   }, { timezone: "UTC" });
 });
 
-// Handle the /setchannel command.
+// Handle the slash commands.
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -81,6 +139,21 @@ client.on('interactionCreate', async (interaction) => {
       content: `Setup complete! I will now track scores and post the daily leaderboard in <#${selectedChannel.id}>.`,
       flags: MessageFlags.Ephemeral
     });
+  }
+
+  if (interaction.commandName === 'leaderboard') {
+    const configuredChannelId = serverConfigs[interaction.guildId];
+    if (!configuredChannelId) {
+      return interaction.reply({ 
+        content: "An admin hasn't set up the tracking channel yet! Tell them to run `/setchannel`.", 
+        flags: MessageFlags.Ephemeral 
+      });
+    }
+
+    const text = buildLeaderboardText(interaction.guildId);
+    
+    // Play button.
+    await interaction.reply({ content: text, components: [getPlayButtonRow()] });
   }
 });
 
@@ -127,44 +200,12 @@ async function postLeaderboardsToAllServers() {
   for (const [guildId, channelId] of Object.entries(serverConfigs)) {
     try {
       const channel = await client.channels.fetch(channelId).catch(() => null);
-      if (!channel) continue; // Bot might have been kicked or channel deleted.
+      if (!channel) continue;
 
-      const serverMap = guildScores.get(guildId);
+      const text = buildLeaderboardText(guildId);
       
-      if (!serverMap || serverMap.size === 0) {
-        // Send a message if no one played.
-        await channel.send("No one shared a linguil score today! ʕノ•ᴥ•ʔノ ︵ ┻━┻");
-        continue;
-      }
-
-      // Convert Map to Array.
-      const allScores = Array.from(serverMap.values());
-
-      // Group by score (handles ties).
-      const groupedScores = allScores.reduce((acc, curr) => {
-        if (!acc[curr.score]) acc[curr.score] = [];
-        acc[curr.score].push(curr);
-        return acc;
-      }, {});
-
-      // Sort unique scores descending.
-      const sortedScoreKeys = Object.keys(groupedScores).map(Number).sort((a, b) => b - a);
-
-      let leaderboardText = "🏆 **Today's linguil Leaderboard** 🏆\n\n";
-      const medals = ["🥇", "🥈", "🥉"];
-
-      sortedScoreKeys.forEach((score, index) => {
-        const players = groupedScores[score];
-        const rank = index < 3 ? medals[index] : `${index + 1}.`;
-        const playerNames = players.map(p => `**${p.username}**`).join(', ');
-        
-        const bear = players[0].bear;
-        const total = players[0].total;
-
-        leaderboardText += `${rank} ${playerNames} • ${score}/${total} | ${bear}\n`;
-      });
-
-      await channel.send(leaderboardText);
+      // Play button.
+      await channel.send({ content: text, components: [getPlayButtonRow()] });
 
     } catch (error) {
       console.error(`Failed to post leaderboard to guild ${guildId}:`, error);
