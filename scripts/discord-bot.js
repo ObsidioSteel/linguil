@@ -86,8 +86,9 @@ function buildLeaderboardText(guildId) {
 function getPlayButtonRow() {
   const playButton = new ButtonBuilder()
     .setLabel('Play linguil')
-    .setStyle(ButtonStyle.Link)
-    .setURL(`https://discord.com/activities/${CLIENT_ID}`); 
+    .setEmoji('1473408144259678444')
+    .setStyle(ButtonStyle.Primary)
+    .setCustomId('play_linguil_btn'); 
 
   return new ActionRowBuilder().addComponents(playButton);
 }
@@ -125,8 +126,19 @@ client.once('clientReady', async () => {
   }, { timezone: "UTC" });
 });
 
-// Handle the slash commands.
+// Handle the slash commands and button interactions.
 client.on('interactionCreate', async (interaction) => {
+  // Intercept the button click before the chat command check.
+  if (interaction.isButton() && interaction.customId === 'play_linguil_btn') {
+    try {
+      // Respond to the button click by launching the Discord Activity.
+      await interaction.launchActivity();
+    } catch (err) {
+      console.error("Failed to launch activity:", err);
+    }
+    return;
+  }
+
   if (!interaction.isChatInputCommand()) return;
 
   if (interaction.commandName === 'setchannel') {
