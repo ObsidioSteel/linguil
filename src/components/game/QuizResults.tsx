@@ -313,11 +313,11 @@ const QuizResults = ({
               <>
               {/* Fallback share box */}
               {showShareBox && (
-                <div className="absolute bottom-[4.5rem] right-6 z-50 p-3 bg-card border rounded-xl shadow-xl w-64 text-left animate-in slide-in-from-bottom-2 fade-in duration-200">
+                <div className="absolute bottom-[4.5rem] right-6 z-50 bg-card text-left animate-in slide-in-from-bottom-2 fade-in duration-200">
                   <textarea
                     readOnly
                     value={shareText}
-                    className="w-full h-32 p-2 text-xs text-muted-foreground font-mono rounded-md border resize-none focus:outline-none focus:ring-2 focus:ring-primary mb-2"
+                    className="w-full h-auto bg-card text-xs dark:text-white rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary"
                     // Auto-select all text when the user clicks inside the box.
                     onClick={(e) => (e.target as HTMLTextAreaElement).select()}
                   />
@@ -326,7 +326,6 @@ const QuizResults = ({
 
               {/* Share button */}
               <Button
-                variant="outline"
                 size="icon"
                 className="absolute bottom-6 right-6 rounded-full shadow-sm hover:bg-primary transition-all"
                 onClick={handleShare}

@@ -60,5 +60,5 @@ export function generateShareText(
   };
   const bear = bearEmojis[score] || bearEmojis[0];
 
-  return `linguil | ${date} | ${word.transliteration} | ${word.nativeScript}${medal}\n${squares}\n${score}/${totalQuestions} | ${bear}\nhttps://linguil.app`;
+  return `linguil | ${date}\n${word.transliteration} | ${word.nativeScript}${medal}\n${squares}\n${score}/${totalQuestions} | ${bear}\nhttps://linguil.app`;
 }
