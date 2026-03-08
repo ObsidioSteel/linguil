@@ -8,7 +8,7 @@
 
 - *Next.js*-based web application
 - **Frontend:** *Tailwind CSS* (styling), *Radix* (UI) & *Recharts* (custom user leaderboards)
-- **Backend:** *Google Cloud* (compute, TTS), *Firebase* (authentication, storage, hosting, performance monitoring, analytics) & *Stripe* (linguil+ payments)
+- **Backend:** *Google Cloud* (compute, TTS, Discord bot), *Firebase* (authentication, storage, hosting, performance monitoring, analytics) & *Stripe* (linguil+ payments)
 
 ## Guide: Add a new language
 
@@ -23,7 +23,7 @@
   
 </div>
 
-4. Choose the most appropriate Google Text-to-Speech (TTS) voice name from [this list](http://docs.cloud.google.com/text-to-speech/docs/list-voices-and-types) (the most similar language if yours is unavailable) and record it at the bottom of ```public/data/LanguageCodes.csv``` in the correct style (note the language code must match the TTS name code):  
+4. Choose the most appropriate Google Text-to-Speech (TTS) voice name from [this list](http://docs.cloud.google.com/text-to-speech/docs/list-voices-and-types) (in order of priority, a voice in (i) your language; (ii) the most similar language using your language's native script; (iii) a language using a Latin-based script that includes the diacritics/additional letters your language uses when transliterated; (iv) an English dialect geographically closest to your language) and record it at the bottom of ```public/data/LanguageCodes.csv``` in the correct style (note the language code must match the TTS name code):  
 <div align=center>
   
   ```[Language],[LanguageCode],[TTSVoiceName]```.
