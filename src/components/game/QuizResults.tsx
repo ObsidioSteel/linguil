@@ -318,7 +318,7 @@ const QuizResults = ({
                     readOnly
                     value={shareText}
                     rows={5}
-                    className="w-auto bg-card p-2 font-sans text-xs dark:text-white rounded-md resize-none ring-2 ring-primary"
+                    className="w-fit h-fit bg-card p-1.5 font-sans text-xs text-center dark:text-white rounded-md resize-none ring-2 ring-primary"
                     // Auto-select all text when the user clicks inside the box.
                     onClick={(e) => (e.target as HTMLTextAreaElement).select()}
                   />
