@@ -48,7 +48,7 @@
 
 ## Discord
 - **Activity:** [discord.com/activities/1473406949792940247](https://discord.com/activities/1473406949792940247)
-- **Server:** [discord.gg/G5B6dZGH](https://discord.gg/G5B6dZGH)
+- **Server:** [discord.gg/YxKgfuK5E](https://discord.gg/YxKgfuK5E)
 
 ___
 
