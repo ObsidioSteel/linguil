@@ -46,6 +46,10 @@
 
 7. Submit your changes to the [```linguil```](https://github.com/linguil/linguil) repo for approval.
 
+## Discord
+- **Activity:** [discord.com/activities/1473406949792940247](https://discord.com/activities/1473406949792940247)
+- **Server:** [discord.gg/YxKgfuK5E](https://discord.gg/YxKgfuK5E)
+
 ___
 
 
