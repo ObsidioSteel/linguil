@@ -253,6 +253,8 @@ const QuizResults = ({
       return;
     }
 
+    setShowShareBox(true);
+
     if (navigator.share) {
       try {
         await navigator.share({ title: 'linguil score', text: shareText });
