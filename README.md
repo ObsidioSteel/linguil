@@ -1,16 +1,16 @@
 # linguil
 
-## About
+## ℹ️ About
 
-***linguil*** is the daily language guessing game.
+***[linguil](https://linguil.app)*** is the daily language guessing game. Guess a new word from the 100-word [Swadesh list](https://en.wikipedia.org/wiki/Swadesh_list) in a random language each day, add friends to your leaderboard, compete with your community on a Discord server, and add new languages to the game—all while learning about linguistics.
 
-## Technical overview
+## ⚙️ Technical overview
 
 - *Next.js*-based web application
 - **Frontend:** *Tailwind CSS* (styling), *Radix* (UI) & *Recharts* (custom user leaderboards)
 - **Backend:** *Google Cloud* (compute, TTS, Discord bot), *Firebase* (authentication, storage, hosting, performance monitoring, analytics) & *Stripe* (linguil+ payments)
 
-## Guide: Add a new language
+## 📖 Guide: Add a new language
 
 1. Check the [language wishlist](http://github.com/linguil/linguil/wiki/Language-Wishlist) for currently supported and unsupported languages (supported languages are ~~crossed out~~ as well as listed in ```public/data/MultiLangFamilies.csv```).
 
@@ -44,17 +44,27 @@
 
 </div>
 
-7. Submit your changes to the [```linguil```](https://github.com/linguil/linguil) repo for approval.
+7. Submit your changes to the [```linguil```](https://github.com/linguil/linguil) repo for approval (and earn linguil+ for free).
 
-## Discord
-- **Activity:** [discord.com/activities/1473406949792940247](https://discord.com/activities/1473406949792940247)
-- **Server:** [discord.gg/p2GyWqVgea](https://discord.gg/p2GyWqVgea)
+## 🌍 Community
+
+### Discord
+🕹️ **Game:** _[discord.com/activities/1473406949792940247](https://discord.com/activities/1473406949792940247)_ | 🌐 **Server:** _[discord.gg/p2GyWqVgea](https://discord.gg/p2GyWqVgea)_
+
+🤖 **Bot commands:**
+- _/setchannel [channel]_ — Set the channel where the bot will listen for and post linguil scores.
+- _/leaderboard_ — View the current daily linguil leaderboard for this server.
+
+### Reddit
+🕹️ **Game:** _coming soon_ | 🗫 **Subreddit:** _[r/linguil](https://reddit.com/r/linguil)_
 
 ___
 
+💡 Created by ***Charlie McCombie ([@Papuang](https://github.com/Papuang/))***
 
-<div align=right>
+🫶 Supported by community contributors:
   
-  Created by ***Charlie McCombie ([@Papuang](https://github.com/Papuang/))***
-  
-</div>
+- ***Xeon ([@xeontheprotogen](http://github.com/xeontheprotogen))*** — Added Hungarian
+- ***Shaheed Headley ([@ObsidioSteel](https://github.com/ObsidioSteel))*** — Added Finnish & Estonian
+
+___
