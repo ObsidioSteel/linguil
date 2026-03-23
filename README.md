@@ -65,6 +65,6 @@ ___
 🫶 Supported by community contributors:
   
 - ***Xeon ([@xeontheprotogen](http://github.com/xeontheprotogen))*** — Added Hungarian
-- ***Shaheed Headley ([@ObsidioSteel](https://github.com/ObsidioSteel))*** — Added Finnish & Estonian
+- ***Shaheed Headley ([@ObsidioSteel](https://github.com/ObsidioSteel))*** — Added Finnish, Estonian, Czech & Slovak
 
 ___
